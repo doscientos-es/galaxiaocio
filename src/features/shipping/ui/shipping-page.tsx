@@ -83,16 +83,15 @@ export function ShippingPage() {
         <PageHeaderHeading>
           <PageHeaderTitle>Agencias y tarifas</PageHeaderTitle>
           <PageHeaderDescription>
-            Para cada pedido se recomienda la agencia más barata de las que ya tenéis cuenta. Al
-            aceptarla se copian los datos del envío y se abre su web.
+            Para cada pedido se recomienda la agencia disponible más barata. Al aceptarla se copian
+            los datos del envío y se abre su web.
           </PageHeaderDescription>
         </PageHeaderHeading>
       </PageHeader>
       <Alert variant="info">
         <AlertTitle>Datos de ejemplo</AlertTitle>
         <AlertDescription>
-          Las tarifas y las cuentas de agencia de esta demo son ficticias. Se sustituyen por las
-          reales al configurar el sistema.
+          Las tarifas iniciales son ficticias. Sustitúyelas por las reales al configurar el sistema.
         </AlertDescription>
       </Alert>
       <QuoteSimulator />
@@ -100,7 +99,7 @@ export function ShippingPage() {
         <CardHeader className="pt-(--card-spacing)">
           <CardTitle>Agencias</CardTitle>
           <CardDescription>
-            Las que tienen cuenta se recomiendan antes, aunque otra sea algo más barata.
+            Configura las agencias con las que gestionas los envíos.
           </CardDescription>
           <CardAction>
             <Button size="sm" onPress={() => setCarrierDialog({ editing: undefined })}>
@@ -113,7 +112,6 @@ export function ShippingPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Agencia</TableHead>
-              <TableHead>Cuenta</TableHead>
               <TableHead className="text-right">Tarifas</TableHead>
               <TableHead className="w-0" />
             </TableRow>
@@ -124,11 +122,6 @@ export function ShippingPage() {
                 <TableCell>
                   <p className="font-medium">{carrier.name}</p>
                   <p className="text-muted-foreground text-xs">{carrier.notes}</p>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={carrier.hasAccount ? 'success' : 'warning'}>
-                    {carrier.hasAccount ? 'Con cuenta' : 'Sin cuenta'}
-                  </Badge>
                 </TableCell>
                 <TableCell>
                   <TableNumber>

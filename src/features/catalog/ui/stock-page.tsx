@@ -16,13 +16,14 @@ import {
   TableRow,
 } from '@doscientos/ui'
 import { Link } from '@tanstack/react-router'
-import { PackagePlus } from 'lucide-react'
+import { PackageCheck, PackagePlus } from 'lucide-react'
 import { useState } from 'react'
 
 import { formatCents, formatKg } from '@/shared/lib/format'
 
 import type { Product } from '../application/product'
 import { useCatalog } from '../application/use-catalog'
+import { PurchaseDialog } from './purchase-dialog'
 import { RestockDialog } from './restock-dialog'
 
 /** An order that cannot continue until a product is available. */
@@ -67,8 +68,9 @@ interface StockPageProps {
 }
 
 export function StockPage({ waitingBySku = {} }: StockPageProps) {
-  const { products, restock } = useCatalog()
+  const { products, suppliers, restock } = useCatalog()
   const [restocking, setRestocking] = useState<Product>()
+  const [ordering, setOrdering] = useState<Product>()
 
   return (
     <PageStack>
@@ -76,8 +78,7 @@ export function StockPage({ waitingBySku = {} }: StockPageProps) {
         <PageHeaderHeading>
           <PageHeaderTitle>Control de stock</PageHeaderTitle>
           <PageHeaderDescription>
-            Al reponer un artículo, los pedidos que estaban pendientes pueden continuar hacia la
-            expedición.
+            Consulta el stock, pide artículos a sus proveedores y registra las recepciones.
           </PageHeaderDescription>
         </PageHeaderHeading>
       </PageHeader>
@@ -90,7 +91,7 @@ export function StockPage({ waitingBySku = {} }: StockPageProps) {
               <TableHead className="text-right">Peso</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead>Pedidos esperando</TableHead>
-              <TableHead className="w-0" />
+              <TableHead className="w-px text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -112,13 +113,29 @@ export function StockPage({ waitingBySku = {} }: StockPageProps) {
                 <TableCell>
                   <WaitingOrders orders={waitingBySku[product.sku] ?? []} />
                 </TableCell>
-                <TableCell>
-                  {product.fulfillment === 'own_stock' ? (
-                    <Button variant="outline" size="sm" onPress={() => setRestocking(product)}>
+                <TableCell className="w-px">
+                  <div className="grid w-max grid-cols-[8rem_10rem] items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Pedir más ${product.name}`}
+                      onPress={() => setOrdering(product)}
+                    >
                       <PackagePlus aria-hidden />
-                      Reponer
+                      Pedir stock
                     </Button>
-                  ) : null}
+                    {product.fulfillment === 'own_stock' ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        aria-label={`Registrar recepción de ${product.name}`}
+                        onPress={() => setRestocking(product)}
+                      >
+                        <PackageCheck aria-hidden />
+                        Registrar recepción
+                      </Button>
+                    ) : <span aria-hidden />}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -130,6 +147,26 @@ export function StockPage({ waitingBySku = {} }: StockPageProps) {
         product={restocking}
         onClose={() => setRestocking(undefined)}
         onSave={restock}
+      />
+      <PurchaseDialog
+        open={ordering !== undefined}
+        onClose={() => setOrdering(undefined)}
+        suppliers={suppliers}
+        lines={
+          ordering
+            ? [
+              {
+                sku: ordering.sku,
+                name: ordering.name,
+                requested: 1,
+                available: 0,
+                missing: 1,
+                status: 'shortage',
+                supplier: ordering.supplier,
+              },
+            ]
+            : []
+        }
       />
     </PageStack>
   )

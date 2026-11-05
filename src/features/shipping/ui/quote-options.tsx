@@ -41,7 +41,6 @@ export function QuoteOptions({ result, selectedId, onSelect }: QuoteOptionsProps
                 <span className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{option.carrier.name}</span>
                   {recommended ? <Badge variant="success">Recomendada</Badge> : null}
-                  {!option.carrier.hasAccount ? <Badge variant="warning">Sin cuenta</Badge> : null}
                 </span>
                 <code className="text-muted-foreground block text-xs">{option.tariff.formula}</code>
               </TableCell>

@@ -23,12 +23,16 @@ export function useShipping() {
     repository.shipments,
   )
 
-  return useMemo(
-    () => ({
-      carriers: carrierList,
-      tariffs: tariffList,
+  return useMemo(() => {
+    // Keep legacy entries in storage, but do not offer unconfigured agencies or their tariffs.
+    const carriers = carrierList.filter((carrier) => carrier.hasAccount)
+    const carrierIds = new Set(carriers.map((carrier) => carrier.id))
+    return {
+      carriers,
+      tariffs: tariffList.filter((tariff) => carrierIds.has(tariff.carrierId)),
       shipments: shipmentList,
       shipmentFor: (orderId: string) => shipmentList.find((item) => item.orderId === orderId),
+      carrierForShipment: (carrierId: string) => carrierList.find((item) => item.id === carrierId),
       quote: (destination: Destination, weightKg: number) =>
         quoteShipment(destination, weightKg, carrierList, tariffList),
       quoteZone: (zone: Zone, weightKg: number) =>
@@ -43,16 +47,15 @@ export function useShipping() {
         await Promise.all(own.map((tariff) => removeTariff(tariff.id)))
         await deleteCarrier(carrierId)
       },
-    }),
-    [
-      carrierList,
-      tariffList,
-      shipmentList,
-      saveShipment,
-      saveCarrier,
-      saveTariff,
-      removeTariff,
-      deleteCarrier,
-    ],
-  )
+    }
+  }, [
+    carrierList,
+    tariffList,
+    shipmentList,
+    saveShipment,
+    saveCarrier,
+    saveTariff,
+    removeTariff,
+    deleteCarrier,
+  ])
 }

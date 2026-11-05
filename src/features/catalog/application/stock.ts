@@ -81,7 +81,12 @@ export function evaluateStock(
   options: StockOptions = {},
 ): StockEvaluation {
   const bySku = new Map(products.map((product) => [product.sku, product]))
-  const results = lines.map((line) => evaluateLine(line, bySku.get(line.sku), options))
+  const quantities = new Map<string, number>()
+  for (const line of lines)
+    quantities.set(line.sku, (quantities.get(line.sku) ?? 0) + line.quantity)
+  const results = Array.from(quantities, ([sku, quantity]) =>
+    evaluateLine({ sku, quantity }, bySku.get(sku), options),
+  )
   const status = (['unknown', 'external', 'shortage'] as const).find((candidate) =>
     results.some((result) => result.status === candidate),
   )
@@ -90,10 +95,13 @@ export function evaluateStock(
 
 /** Returns the products whose stock changes when an order is prepared for shipping. */
 export function reserveStock(products: Product[], lines: StockLine[]): Product[] {
-  return lines.flatMap((line) => {
-    const product = products.find((candidate) => candidate.sku === line.sku)
+  const quantities = new Map<string, number>()
+  for (const line of lines)
+    quantities.set(line.sku, (quantities.get(line.sku) ?? 0) + line.quantity)
+  return Array.from(quantities).flatMap(([sku, quantity]) => {
+    const product = products.find((candidate) => candidate.sku === sku)
     if (!product || product.fulfillment === 'external_supplier') return []
-    return [{ ...product, stock: Math.max(0, product.stock - line.quantity) }]
+    return [{ ...product, stock: Math.max(0, product.stock - quantity) }]
   })
 }
 

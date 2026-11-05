@@ -23,6 +23,7 @@ export async function resetDemoData(): Promise<void> {
   await Promise.all(
     [
       catalog.products,
+      catalog.suppliers,
       orders.orders,
       orders.customers,
       orders.activity,

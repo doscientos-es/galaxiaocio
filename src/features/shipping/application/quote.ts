@@ -23,7 +23,7 @@ export interface QuoteResult {
   weightKg: number
   /** Eligible options, cheapest first. */
   options: QuoteOption[]
-  /** Cheapest option among carriers the team already has an account with. */
+  /** Cheapest eligible option. */
   recommended: QuoteOption | undefined
   /** Most expensive eligible option: the reference to measure savings against. */
   reference: QuoteOption | undefined
@@ -82,6 +82,7 @@ export function quoteForZone(
       const carrier = carriers.find((candidate) => candidate.id === tariff.carrierId)
       const eligible =
         carrier &&
+        carrier.hasAccount &&
         zone === tariff.zone &&
         service === tariff.service &&
         weightKg <= tariff.maxWeightKg
@@ -94,7 +95,7 @@ export function quoteForZone(
     service,
     weightKg,
     options,
-    recommended: options.find((option) => option.carrier.hasAccount),
+    recommended: options[0],
     reference: options.at(-1),
   }
 }

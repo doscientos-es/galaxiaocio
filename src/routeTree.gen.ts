@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdministracionRouteImport } from './routes/administracion'
+import { Route as CatalogoRouteImport } from './routes/catalogo'
 import { Route as ClientesRouteImport } from './routes/clientes'
 import { Route as ResumenRouteImport } from './routes/resumen'
 import { Route as StockRouteImport } from './routes/stock'
 import { Route as TransporteRouteImport } from './routes/transporte'
+import { Route as ClientesCustomerIdRouteImport } from './routes/clientes_.$customerId'
 import { Route as PedidosIndexRouteImport } from './routes/pedidos.index'
 import { Route as PedidosOrderIdRouteImport } from './routes/pedidos.$orderId'
 
@@ -26,6 +28,11 @@ const IndexRoute = IndexRouteImport.update({
 const AdministracionRoute = AdministracionRouteImport.update({
   id: '/administracion',
   path: '/administracion',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CatalogoRoute = CatalogoRouteImport.update({
+  id: '/catalogo',
+  path: '/catalogo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientesRoute = ClientesRouteImport.update({
@@ -48,6 +55,11 @@ const TransporteRoute = TransporteRouteImport.update({
   path: '/transporte',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClientesCustomerIdRoute = ClientesCustomerIdRouteImport.update({
+  id: '/clientes_/$customerId',
+  path: '/clientes/$customerId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PedidosIndexRoute = PedidosIndexRouteImport.update({
   id: '/pedidos/',
   path: '/pedidos/',
@@ -62,20 +74,24 @@ const PedidosOrderIdRoute = PedidosOrderIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/administracion': typeof AdministracionRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/resumen': typeof ResumenRoute
   '/stock': typeof StockRoute
   '/transporte': typeof TransporteRoute
+  '/clientes/$customerId': typeof ClientesCustomerIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
   '/pedidos/': typeof PedidosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/administracion': typeof AdministracionRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/resumen': typeof ResumenRoute
   '/stock': typeof StockRoute
   '/transporte': typeof TransporteRoute
+  '/clientes/$customerId': typeof ClientesCustomerIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
   '/pedidos': typeof PedidosIndexRoute
 }
@@ -83,10 +99,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/administracion': typeof AdministracionRoute
+  '/catalogo': typeof CatalogoRoute
   '/clientes': typeof ClientesRoute
   '/resumen': typeof ResumenRoute
   '/stock': typeof StockRoute
   '/transporte': typeof TransporteRoute
+  '/clientes_/$customerId': typeof ClientesCustomerIdRoute
   '/pedidos/$orderId': typeof PedidosOrderIdRoute
   '/pedidos/': typeof PedidosIndexRoute
 }
@@ -95,30 +113,36 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/administracion'
+    | '/catalogo'
     | '/clientes'
     | '/resumen'
     | '/stock'
     | '/transporte'
+    | '/clientes/$customerId'
     | '/pedidos/$orderId'
     | '/pedidos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/administracion'
+    | '/catalogo'
     | '/clientes'
     | '/resumen'
     | '/stock'
     | '/transporte'
+    | '/clientes/$customerId'
     | '/pedidos/$orderId'
     | '/pedidos'
   id:
     | '__root__'
     | '/'
     | '/administracion'
+    | '/catalogo'
     | '/clientes'
     | '/resumen'
     | '/stock'
     | '/transporte'
+    | '/clientes_/$customerId'
     | '/pedidos/$orderId'
     | '/pedidos/'
   fileRoutesById: FileRoutesById
@@ -126,10 +150,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdministracionRoute: typeof AdministracionRoute
+  CatalogoRoute: typeof CatalogoRoute
   ClientesRoute: typeof ClientesRoute
   ResumenRoute: typeof ResumenRoute
   StockRoute: typeof StockRoute
   TransporteRoute: typeof TransporteRoute
+  ClientesCustomerIdRoute: typeof ClientesCustomerIdRoute
   PedidosOrderIdRoute: typeof PedidosOrderIdRoute
   PedidosIndexRoute: typeof PedidosIndexRoute
 }
@@ -148,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/administracion'
       fullPath: '/administracion'
       preLoaderRoute: typeof AdministracionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/catalogo': {
+      id: '/catalogo'
+      path: '/catalogo'
+      fullPath: '/catalogo'
+      preLoaderRoute: typeof CatalogoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/clientes': {
@@ -178,6 +211,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TransporteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/clientes_/$customerId': {
+      id: '/clientes_/$customerId'
+      path: '/clientes/$customerId'
+      fullPath: '/clientes/$customerId'
+      preLoaderRoute: typeof ClientesCustomerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pedidos/': {
       id: '/pedidos/'
       path: '/pedidos'
@@ -198,10 +238,12 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdministracionRoute: AdministracionRoute,
+  CatalogoRoute: CatalogoRoute,
   ClientesRoute: ClientesRoute,
   ResumenRoute: ResumenRoute,
   StockRoute: StockRoute,
   TransporteRoute: TransporteRoute,
+  ClientesCustomerIdRoute: ClientesCustomerIdRoute,
   PedidosOrderIdRoute: PedidosOrderIdRoute,
   PedidosIndexRoute: PedidosIndexRoute,
 }

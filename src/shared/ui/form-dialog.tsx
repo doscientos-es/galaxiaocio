@@ -10,7 +10,7 @@ import {
 } from '@doscientos/ui'
 import type { FormEventHandler, ReactNode } from 'react'
 
-const sizes = { md: 'max-w-[32rem]', lg: 'max-w-[42rem]' } as const
+const sizes = { md: 'max-w-[32rem]', lg: 'max-w-[42rem]', xl: 'max-w-[56rem]' } as const
 
 interface FormDialogProps {
   open: boolean
@@ -22,6 +22,7 @@ interface FormDialogProps {
   submitLabel?: string
   loading?: boolean
   submitDisabled?: boolean
+  showSubmit?: boolean
   size?: keyof typeof sizes
 }
 
@@ -39,6 +40,7 @@ export function FormDialog({
   submitLabel = 'Guardar',
   loading = false,
   submitDisabled = false,
+  showSubmit = true,
   size = 'md',
 }: FormDialogProps) {
   return (
@@ -56,14 +58,16 @@ export function FormDialog({
             <DialogTitle>{title}</DialogTitle>
             {description ? <DialogDescription>{description}</DialogDescription> : null}
           </DialogHeader>
-          <div className="grid max-h-[60vh] gap-4 overflow-y-auto p-1">{children}</div>
+          <div className="grid max-h-[60vh] min-w-0 gap-4 overflow-y-auto p-1">{children}</div>
           <DialogFooter>
             <Button variant="outline" isDisabled={loading} onPress={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <SubmitButton loading={loading} isDisabled={submitDisabled}>
-              {submitLabel}
-            </SubmitButton>
+            {showSubmit ? (
+              <SubmitButton loading={loading} isDisabled={submitDisabled}>
+                {submitLabel}
+              </SubmitButton>
+            ) : null}
           </DialogFooter>
         </form>
       </DialogContent>

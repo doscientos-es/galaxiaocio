@@ -7,6 +7,7 @@ import { createSeedProducts } from '../infrastructure/seed-products'
 import { orderTotals } from './pricing'
 import { productSchema } from './product'
 import { InsufficientStockError, reserveFromCollection, restockInCollection } from './reserve'
+import { saveCatalogProduct } from './save-catalog-product'
 import { evaluateStock, reserveStock, restockProduct } from './stock'
 
 const products = createSeedProducts()
@@ -61,11 +62,41 @@ describe('atomic stock reservation', () => {
     expect(await catalog.list()).toEqual(before)
   })
 
+  it('combines repeated SKUs before checking and reserving stock', async () => {
+    const catalog = newCatalog()
+    const duplicate = [
+      { sku: 'VIT-REF', quantity: 1 },
+      { sku: 'VIT-REF', quantity: 1 },
+    ]
+    expect(evaluateStock(duplicate, products).lines[0]).toMatchObject({ requested: 2, missing: 1 })
+    await expect(reserveFromCollection(catalog, duplicate, 'none')).rejects.toBeInstanceOf(
+      InsufficientStockError,
+    )
+    await reserveFromCollection(
+      catalog,
+      [
+        { sku: 'FRY-2X8', quantity: 1 },
+        { sku: 'FRY-2X8', quantity: 2 },
+      ],
+      'none',
+    )
+    expect((await catalog.get('fry-2x8'))?.stock).toBe(3)
+  })
+
   it('adds restocked units to the current stock', async () => {
     const catalog = newCatalog()
     await reserveFromCollection(catalog, [{ sku: 'FRY-2X8', quantity: 2 }], 'none')
     await restockInCollection(catalog, 'FRY-2X8', 5)
     expect((await catalog.get('fry-2x8'))?.stock).toBe(9)
+  })
+
+  it('preserves current stock when saving stale catalog details', async () => {
+    const catalog = newCatalog()
+    const stale = await catalog.get('fry-2x8')
+    if (!stale) throw new Error('Falta el artículo')
+    await reserveFromCollection(catalog, [{ sku: stale.sku, quantity: 2 }], 'none')
+    await saveCatalogProduct(catalog, { ...stale, name: 'Nombre actualizado' })
+    expect(await catalog.get(stale.id)).toMatchObject({ name: 'Nombre actualizado', stock: 4 })
   })
 })
 

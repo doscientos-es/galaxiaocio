@@ -48,7 +48,7 @@ export function buildGestorExport(
           order.address.street,
           order.address.postalCode,
           order.address.city,
-          stageLabels[order.stage],
+          order.deliveredAt ? 'Recibido' : stageLabels[order.stage],
         ]),
       ),
     },

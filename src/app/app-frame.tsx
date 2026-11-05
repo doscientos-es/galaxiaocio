@@ -1,12 +1,10 @@
 import {
   ConfirmDialog,
-  Separator,
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -21,6 +19,7 @@ import {
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import {
   FileText,
+  BookOpen,
   LayoutDashboard,
   type LucideIcon,
   Package,
@@ -60,6 +59,7 @@ type NavigationPath =
   | '/resumen'
   | '/pedidos'
   | '/clientes'
+  | '/catalogo'
   | '/stock'
   | '/transporte'
   | '/administracion'
@@ -68,8 +68,9 @@ const navigation: Array<{ to: NavigationPath; label: string; icon: LucideIcon }>
   { to: '/resumen', label: 'Resumen', icon: LayoutDashboard },
   { to: '/pedidos', label: 'Pedidos', icon: ShoppingCart },
   { to: '/clientes', label: 'Clientes', icon: Users },
+  { to: '/catalogo', label: 'Catálogo', icon: BookOpen },
   { to: '/stock', label: 'Stock', icon: Package },
-  { to: '/transporte', label: 'Transporte', icon: Truck },
+  { to: '/transporte', label: 'Agencias y tarifas', icon: Truck },
   { to: '/administracion', label: 'Administración', icon: FileText },
 ]
 
@@ -87,7 +88,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
     await queryClient.invalidateQueries()
     setConfirmingReset(false)
     await navigate({ to: '/resumen' })
-    toast.success('Demo restablecida')
+    toast.success('Datos restablecidos')
   }
 
   return (
@@ -99,7 +100,6 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <SidebarGroupLabel>Operativa</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {navigation.map(({ to, label, icon: Icon }) => (
@@ -132,7 +132,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 onPress={() => setConfirmingReset(true)}
               >
                 <RotateCcw aria-hidden />
-                Restablecer demo
+                Restablecer datos
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
@@ -142,15 +142,13 @@ export function AppFrame({ children }: { children: ReactNode }) {
       <SidebarInset>
         <header className="border-border flex h-14 shrink-0 items-center gap-3 border-b px-4">
           <SidebarTrigger />
-          <Separator orientation="vertical" className="h-4" />
-          <span className="text-muted-foreground text-sm">Demo con datos de ejemplo</span>
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 sm:p-6">{children}</div>
       </SidebarInset>
       <ConfirmDialog
         open={confirmingReset}
         onOpenChange={setConfirmingReset}
-        title="Restablecer la demo"
+        title="Restablecer datos"
         description="Se borrarán los cambios y volverán los pedidos, stock y envíos de ejemplo."
         confirmLabel="Restablecer"
         onConfirm={() => void reset()}

@@ -1,7 +1,11 @@
 import {
   Button,
+  Field,
+  FieldDescription,
   FieldError,
+  FieldLabel,
   IconButton,
+  Input,
   QuantityInput,
   Select,
   SelectContent,
@@ -37,45 +41,52 @@ export function OrderLinesEditor({
     onChange(lines.map((line) => (line.id === id ? { ...line, ...change } : line)))
 
   return (
-    <div className="grid gap-3">
+    <div className="grid min-w-0 gap-3">
       {lines.map((line) => {
         const issue = issues.find((candidate) => candidate.field === `line:${line.id}`)
         return (
-          <div key={line.id} className="grid gap-1.5">
-            <div className="flex items-center gap-2">
-              <Select
-                aria-label="Artículo"
-                className="min-w-0 flex-1"
-                placeholder="Elegir artículo del catálogo"
-                isDisabled={disabled}
-                isInvalid={issue !== undefined}
-                selectedKey={line.sku || null}
-                onSelectionChange={(key) => {
-                  const product = products.find((candidate) => candidate.sku === String(key))
-                  if (product) patch(line.id, { sku: product.sku, description: product.name })
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectList items={products}>
-                    {(product) => (
-                      <SelectItem id={product.sku} textValue={product.name}>
-                        {product.name}
-                      </SelectItem>
-                    )}
-                  </SelectList>
-                </SelectContent>
-              </Select>
-              <QuantityInput
-                aria-label="Cantidad"
-                value={line.quantity}
-                isDisabled={disabled}
-                onChange={(quantity) =>
-                  patch(line.id, { quantity: Number.isNaN(quantity) ? 0 : quantity })
-                }
-              />
+          <div key={line.id} className="grid min-w-0 gap-1.5">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+              <div className="col-span-2 grid min-w-0 gap-1.5 sm:col-span-1">
+                <span className="text-sm font-medium">Artículo</span>
+                <Select
+                  aria-label="Artículo"
+                  className="min-w-0 flex-1"
+                  placeholder="Elegir artículo del catálogo"
+                  isDisabled={disabled}
+                  isInvalid={issue !== undefined}
+                  selectedKey={line.sku || null}
+                  onSelectionChange={(key) => {
+                    const product = products.find((candidate) => candidate.sku === String(key))
+                    if (product)
+                      patch(line.id, { sku: product.sku, description: line.description || product.name })
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectList items={products}>
+                      {(product) => (
+                        <SelectItem id={product.sku} textValue={product.name}>
+                          {product.name}
+                        </SelectItem>
+                      )}
+                    </SelectList>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <span className="text-sm font-medium">Cantidad</span>
+                <QuantityInput
+                  aria-label="Cantidad"
+                  value={line.quantity}
+                  isDisabled={disabled}
+                  onChange={(quantity) =>
+                    patch(line.id, { quantity: Number.isNaN(quantity) ? 0 : quantity })
+                  }
+                />
+              </div>
               <IconButton
                 label="Quitar artículo"
                 variant="ghost"
@@ -85,9 +96,40 @@ export function OrderLinesEditor({
                 <Trash2 aria-hidden />
               </IconButton>
             </div>
-            {line.sku === '' && line.description ? (
-              <p className="text-muted-foreground text-xs">Según el pedido: «{line.description}»</p>
-            ) : null}
+            <div className="grid min-w-0 gap-3 pt-2 sm:grid-cols-2">
+              <Field className="sm:col-span-2">
+                <FieldLabel htmlFor={`${line.id}-description`}>Descripción original</FieldLabel>
+                <Input
+                  id={`${line.id}-description`}
+                  placeholder="Descripción tal como aparece en el pedido"
+                  value={line.description}
+                  disabled={disabled}
+                  onChange={(event) => patch(line.id, { description: event.target.value })}
+                />
+              </Field>
+              {([
+                ['originalSku', 'SKU original', 'Ej. Q0-QM5K-G2HR'],
+                ['originalAsin', 'ASIN', 'Ej. B0G3XL3XR3'],
+                ['originalReference', 'Referencia del artículo', 'Nº de pedido del artículo'],
+                ['originalPrice', 'Precio unitario original (€)', 'Ej. 220,00'],
+                ['originalTotal', 'Total original del artículo (€)', 'Ej. 220,00'],
+                ['originalState', 'Estado del artículo', 'Ej. Nuevo'],
+              ] as const).map(([key, label, placeholder]) => (
+                <Field key={key}>
+                  <FieldLabel htmlFor={`${line.id}-${key}`}>{label}</FieldLabel>
+                  <Input
+                    id={`${line.id}-${key}`}
+                    placeholder={placeholder}
+                    value={line[key] ?? ''}
+                    disabled={disabled}
+                    onChange={(event) => patch(line.id, { [key]: event.target.value })}
+                  />
+                </Field>
+              ))}
+            </div>
+            <FieldDescription className="text-xs">
+              El precio original es informativo. Selecciona el artículo del catálogo para gestionar el stock.
+            </FieldDescription>
             {issue ? <FieldError>{issue.message}</FieldError> : null}
           </div>
         )

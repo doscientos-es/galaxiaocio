@@ -19,6 +19,7 @@ export {
 } from './application/reserve'
 export { useCatalog } from './application/use-catalog'
 export { createLocalCatalogRepository } from './infrastructure/local-catalog-repository'
+export { CatalogPage } from './ui/catalog-page'
 export { StockPage, type WaitingOrder } from './ui/stock-page'
 export { StockPanel } from './ui/stock-panel'
 export { StockStatusBadge } from './ui/stock-status-badge'

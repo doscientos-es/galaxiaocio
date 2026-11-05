@@ -14,7 +14,6 @@ export interface TariffDraft {
 export interface CarrierDraft {
   name: string
   portalUrl: string
-  hasAccount: boolean
   notes: string
 }
 
@@ -75,7 +74,7 @@ export function toCarrier(draft: CarrierDraft, id?: string): Carrier {
     id: id ?? createId('car'),
     name: draft.name.trim(),
     portalUrl: draft.portalUrl.trim(),
-    hasAccount: draft.hasAccount,
+    hasAccount: true,
     notes: draft.notes.trim(),
   }
 }

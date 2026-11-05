@@ -8,7 +8,7 @@ export const carrierSchema = z.object({
   name: z.string(),
   /** Carrier website opened when the recommended option is accepted. */
   portalUrl: z.string(),
-  /** Whether the team already has an account with this carrier. */
+  /** Legacy flag: only configured carriers are offered for new shipments. */
   hasAccount: z.boolean(),
   notes: z.string(),
 })
@@ -29,8 +29,9 @@ export const shipmentSchema = z.object({
   orderId: z.string(),
   carrierId: z.string(),
   carrierName: z.string(),
+  carrierPortalUrl: z.string().optional(),
   service: serviceSchema,
-  /** recommended: cheapest with account · alternative: another quoted option · manual: special case */
+  /** recommended: cheapest option · alternative: another quoted option · manual: special case */
   mode: z.enum(['recommended', 'alternative', 'manual']),
   costCents: z.number().int(),
   /** Difference with the most expensive quoted option; 0 for manual shipments. */

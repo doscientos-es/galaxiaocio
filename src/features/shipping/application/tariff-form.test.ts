@@ -51,16 +51,19 @@ describe('tariff form', () => {
   })
 
   it('validates and converts an agency', () => {
-    expect(
-      validateCarrier({ name: 'A', portalUrl: 'mrw.es', hasAccount: true, notes: '' }),
-    ).toEqual({
+    expect(validateCarrier({ name: 'A', portalUrl: 'mrw.es', notes: '' })).toEqual({
       name: 'Indica el nombre de la agencia.',
       portalUrl: 'Indica una web que empiece por https://',
     })
     const carrier = toCarrier(
-      { name: ' Seur ', portalUrl: ' https://www.seur.com ', hasAccount: false, notes: '' },
+      { name: ' Seur ', portalUrl: ' https://www.seur.com ', notes: '' },
       'seur',
     )
-    expect(carrier).toMatchObject({ id: 'seur', name: 'Seur', portalUrl: 'https://www.seur.com' })
+    expect(carrier).toMatchObject({
+      id: 'seur',
+      name: 'Seur',
+      portalUrl: 'https://www.seur.com',
+      hasAccount: true,
+    })
   })
 })

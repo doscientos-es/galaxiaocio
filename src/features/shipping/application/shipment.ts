@@ -45,6 +45,7 @@ export function buildShipment({
     orderId,
     carrierId: carrier.id,
     carrierName: carrier.name,
+    carrierPortalUrl: carrier.portalUrl,
     service: quote.service,
     mode,
     costCents,

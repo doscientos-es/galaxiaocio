@@ -18,7 +18,7 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { AlertTriangle, PackageCheck, PiggyBank, Truck } from 'lucide-react'
 
 import { evaluateStock, useCatalog } from '@/features/catalog'
-import { useOrders, type OrderStage } from '@/features/orders'
+import { OrderCustomerLink, useOrders, type OrderStage } from '@/features/orders'
 import { useShipping } from '@/features/shipping'
 import { formatCents, formatDateTime } from '@/shared/lib/format'
 
@@ -28,35 +28,6 @@ type Navigate = ReturnType<typeof useNavigate>
 
 const openOrder = (navigate: Navigate, orderId: string) =>
   void navigate({ to: '/pedidos/$orderId', params: { orderId } })
-
-/** Script for the demo. Each step opens the seeded order that illustrates it. */
-const guide: Array<{ title: string; text: string; go: (navigate: Navigate) => void }> = [
-  {
-    title: 'Revisa un pedido de WhatsApp',
-    text: 'La foto de Makro: compara los datos y confirma antes de registrarlo.',
-    go: (navigate) => openOrder(navigate, 'ord-seed-3'),
-  },
-  {
-    title: 'Completa un pedido incompleto',
-    text: 'El email del hotel no trae código postal: corrígelo y valida.',
-    go: (navigate) => openOrder(navigate, 'ord-seed-2'),
-  },
-  {
-    title: 'Pide al proveedor',
-    text: 'El horno FM no está en stock propio: avisa al equipo.',
-    go: (navigate) => openOrder(navigate, 'ord-seed-5'),
-  },
-  {
-    title: 'Repón stock',
-    text: 'Faltan vitrinas: repón y mira cómo el pedido puede continuar.',
-    go: (navigate) => void navigate({ to: '/stock' }),
-  },
-  {
-    title: 'Envía y factura',
-    text: 'Prepara la expedición, elige agencia y marca como enviado: los documentos salen solos.',
-    go: (navigate) => openOrder(navigate, 'ord-seed-1'),
-  },
-]
 
 /** Lower is more urgent. Finished orders never appear in the pending list. */
 const priority: Record<OrderStage, number> = {
@@ -70,7 +41,8 @@ const priority: Record<OrderStage, number> = {
 
 export function DashboardPage() {
   const navigate = useNavigate()
-  const { orders, activity } = useOrders()
+  const { orders, customers, activity } = useOrders()
+  const customerIds = new Set(customers.map((customer) => customer.id))
   const { products } = useCatalog()
   const { shipments } = useShipping()
 
@@ -85,6 +57,7 @@ export function DashboardPage() {
         }).status,
         supplierStatus: order.supplierStatus,
         marketplace: order.marketplace,
+        deliveredAt: order.deliveredAt,
       }),
     }))
     .sort(
@@ -158,7 +131,7 @@ export function DashboardPage() {
                   <li key={order.id} className="flex items-start gap-3">
                     <span className="grid flex-1 gap-0.5">
                       <span className="text-sm font-medium">
-                        {order.reference} · {order.customer.name || 'Cliente sin identificar'}
+                        {order.reference} · <OrderCustomerLink order={order} customerIds={customerIds} />
                       </span>
                       <span className="text-muted-foreground text-xs">{step.title}</span>
                     </span>
@@ -178,30 +151,6 @@ export function DashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Recorrido sugerido para la demo</CardTitle>
-            <CardDescription>Cinco pasos que cubren todo el flujo acordado.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="grid gap-3">
-              {guide.map((item, index) => (
-                <li key={item.title} className="flex items-start gap-3">
-                  <span className="bg-secondary text-secondary-foreground flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
-                    {index + 1}
-                  </span>
-                  <span className="grid flex-1 gap-0.5">
-                    <strong className="text-sm">{item.title}</strong>
-                    <span className="text-muted-foreground text-sm">{item.text}</span>
-                  </span>
-                  <Button variant="outline" size="sm" onPress={() => item.go(navigate)}>
-                    Ir
-                  </Button>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader>
             <CardTitle>Actividad reciente</CardTitle>
             <CardDescription>Lo último que ha pasado con los pedidos.</CardDescription>
           </CardHeader>
@@ -210,7 +159,7 @@ export function DashboardPage() {
               {recent.map((entry) => (
                 <li key={entry.id} className="flex items-start justify-between gap-3">
                   <span className="grid gap-0.5">
-                    {entry.orderId ? (
+                    {entry.orderId && orders.some((order) => order.id === entry.orderId) ? (
                       <Link
                         to="/pedidos/$orderId"
                         params={{ orderId: entry.orderId }}

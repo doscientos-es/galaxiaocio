@@ -19,8 +19,10 @@ import {
   createOrder,
   editOrder,
   findOrCreateCustomer,
+  isEditable,
   nextSequence,
 } from './order-workflow'
+import { withOrderOperation } from './order-operation'
 import { useOrdersRepository } from './orders-repository'
 
 type ActivityEntry = Omit<Activity, 'id' | 'at'>
@@ -64,13 +66,21 @@ export function useOrders() {
         }
       }
     }
-    await orders.upsert(next)
+    await repository.orders.mutate((items) => {
+      const current = items.find((item) => item.id === next.id)
+      if (!current || current.deletedAt) throw new Error('El pedido ya no está disponible.')
+      return { items: items.map((item) => (item.id === next.id ? next : item)), result: undefined }
+    })
+    await orders.refresh()
     return next
   }
 
   /** Always works on the stored order, never on a copy that may have gone stale on screen. */
-  const latest = async (order: Order): Promise<Order> =>
-    (await repository.orders.get(order.id)) ?? order
+  const latest = async (order: Order): Promise<Order> => {
+    const current = await repository.orders.get(order.id)
+    if (!current || current.deletedAt) throw new Error('El pedido ya no está disponible.')
+    return current
+  }
 
   const report = (order: Order, previous: OrderStage | null) => {
     if (order.stage === previous) return Promise.resolve()
@@ -105,12 +115,46 @@ export function useOrders() {
   }
 
   return {
-    orders: orders.items,
+    orders: orders.items.filter((order) => !order.deletedAt),
     customers: customers.items,
+    customersLoading: customers.isLoading,
     activity: activity.items,
     isLoading: orders.isLoading,
     knownSkus,
     logActivity,
+    recordOrderEntry: async (order: Order, kind: 'incident' | 'communication', detail: string) => {
+      const text = detail.trim()
+      if (!text) throw new Error('Escribe una descripción antes de guardar.')
+      const current = await latest(order)
+      if (current.stage !== 'shipped' && current.stage !== 'closed') {
+        throw new Error('El pedido todavía no está enviado.')
+      }
+      await logActivity({
+        orderId: order.id,
+        kind,
+        title: kind === 'incident' ? 'Incidencia registrada' : 'Comunicación registrada',
+        detail: text,
+        tone: kind === 'incident' ? 'warning' : 'info',
+      })
+    },
+    resolveIncident: async (order: Order, incidentId: string) => {
+      await latest(order)
+      const changed = await repository.activity.mutate((items) => {
+        const incident = items.find((item) => item.id === incidentId && item.orderId === order.id)
+        if (!incident || incident.kind !== 'incident' || incident.resolvedAt) {
+          return { items, result: false }
+        }
+        const resolvedAt = new Date().toISOString()
+        return {
+          items: items.map((item) => item.id === incidentId ? { ...item, resolvedAt } : item),
+          result: true,
+        }
+      })
+      if (changed) {
+        await activity.refresh()
+        await logActivity({ orderId: order.id, title: 'Incidencia resuelta', detail: order.reference, tone: 'success' })
+      }
+    },
     getLatest: latest,
     receive,
     receiveFromChannel: async (channel: OrderChannel) =>
@@ -129,6 +173,37 @@ export function useOrders() {
     advance: async (order: Order, to: OrderStage) => {
       const current = await latest(order)
       return current.stage === to ? current : persist(advanceOrder(current, to))
+    },
+    deleteOrder: async (orderId: string) => withOrderOperation(orderId, async () => {
+      const removed = await repository.orders.mutate((items) => {
+        const current = items.find((item) => item.id === orderId)
+        if (!current || current.deletedAt) return { items, result: false }
+        if (!isEditable(current)) {
+          throw new Error('No se puede eliminar un pedido con stock reservado o ya enviado.')
+        }
+        const deletedAt = new Date().toISOString()
+        return {
+          items: items.map((item) => (item.id === orderId ? { ...item, deletedAt } : item)),
+          result: true,
+        }
+      })
+      if (removed) await orders.refresh()
+      return removed
+    }),
+    markDelivered: async (orderId: string) => {
+      const changed = await repository.orders.mutate((items) => {
+        const current = items.find((item) => item.id === orderId)
+        if (!current || current.deliveredAt || !['shipped', 'closed'].includes(current.stage)) {
+          return { items, result: false }
+        }
+        const deliveredAt = new Date().toISOString()
+        return {
+          items: items.map((item) => (item.id === orderId ? { ...item, deliveredAt } : item)),
+          result: true,
+        }
+      })
+      if (changed) await orders.refresh()
+      return changed
     },
     setSupplierStatus: async (order: Order, supplierStatus: Order['supplierStatus']) =>
       persist({ ...(await latest(order)), supplierStatus }),

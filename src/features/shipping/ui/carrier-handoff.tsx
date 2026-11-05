@@ -32,8 +32,10 @@ export function CarrierHandoff(props: CarrierHandoffProps) {
   const fields: Array<[label: string, value: string]> = [
     ['Destinatario', order.customer.name],
     ['Dirección', order.address.street],
+    ...(order.address.street2 ? [['Dirección adicional', order.address.street2] as [string, string]] : []),
     ['Código postal', order.address.postalCode],
     ['Población', order.address.city],
+    ...(order.address.province ? [['Provincia', order.address.province] as [string, string]] : []),
     ['Teléfono', order.customer.phone],
     ['Peso', formatKg(weightKg)],
     ['Bultos', String(packages)],

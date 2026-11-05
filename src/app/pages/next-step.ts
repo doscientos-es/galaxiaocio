@@ -13,10 +13,17 @@ interface NextStepInput {
   stock: StockStatus
   supplierStatus: SupplierStatus
   marketplace: 'makro' | 'amazon' | 'leroy-merlin' | null
+  deliveredAt?: string | undefined
 }
 
 /** Tells the person what to do with an order right now, following the agreed flow. */
-export function nextStep({ stage, stock, supplierStatus, marketplace }: NextStepInput): NextStep {
+export function nextStep({
+  stage,
+  stock,
+  supplierStatus,
+  marketplace,
+  deliveredAt,
+}: NextStepInput): NextStep {
   switch (stage) {
     case 'review':
       return {
@@ -46,14 +53,20 @@ export function nextStep({ stage, stock, supplierStatus, marketplace }: NextStep
         detail:
           marketplace === 'makro'
             ? 'El albarán ya está generado. La factura la emite la entidad intermediaria.'
-            : 'El albarán y la factura ya están generados. Revísalos y cierra el pedido.',
+            : 'El albarán y la factura ya están generados. Revísalos para el gestor.',
       }
     case 'closed':
-      return {
-        tone: 'done',
-        title: 'Pedido completado',
-        detail: 'Enviado y preparado para el gestor.',
-      }
+      return deliveredAt
+        ? {
+            tone: 'done',
+            title: 'Pedido recibido',
+            detail: 'Entrega confirmada y documentación preparada para el gestor.',
+          }
+        : {
+            tone: 'done',
+            title: 'Pedido enviado',
+            detail: 'Preparado para el gestor. Consulta el seguimiento o confirma la entrega.',
+          }
   }
 }
 
@@ -68,7 +81,7 @@ function storedStep(stock: StockStatus, supplierStatus: SupplierStatus): NextSte
       : {
           tone: 'action',
           title: 'Hay que pedir al proveedor',
-          detail: 'Avisa al equipo para que haga el pedido del artículo externo.',
+          detail: 'Solicita el artículo al proveedor y marca su recepción cuando llegue.',
         }
   }
   if (stock === 'shortage') {

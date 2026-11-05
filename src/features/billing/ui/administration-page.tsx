@@ -1,6 +1,4 @@
 import {
-  Alert,
-  AlertDescription,
   Badge,
   Button,
   Card,
@@ -79,12 +77,6 @@ export function AdministrationPage() {
         />
         <MetricCard label="Expediciones" value={shipments.length} icon={<Truck />} />
       </MetricGrid>
-      <Alert variant="info">
-        <AlertDescription>
-          La exportación usa CSV de ejemplo. El formato final (columnas, periodicidad, IVA diferido)
-          se acuerda con el gestor.
-        </AlertDescription>
-      </Alert>
       <Card className="py-0">
         <Table>
           <TableHeader>

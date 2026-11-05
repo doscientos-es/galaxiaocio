@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -24,17 +23,19 @@ import { validateOrder } from '../application/validation'
 import { OrderDataForm, type OrderFormValue } from './order-data-form'
 import { WhatsappPhotoCard } from './whatsapp-photo-card'
 
-const toFormValue = ({ customer, address, lines }: Order): OrderFormValue => ({
+const toFormValue = ({ customer, address, lines, marketplace, source }: Order): OrderFormValue => ({
   customer,
   address,
   lines,
+  marketplace,
+  source,
 })
 
 /**
  * Validation step: edit the data, then register the order. A WhatsApp photo cannot be
  * registered until a person confirms they have compared it with the form.
  */
-export function OrderDataPanel({ order }: { order: Order }) {
+export function OrderDataPanel({ order, onValidated }: { order: Order; onValidated?: () => void }) {
   const { products } = useCatalog()
   const { knownSkus, saveData, confirmReview } = useOrders()
   const [value, setValue] = useState(() => toFormValue(order))
@@ -54,6 +55,7 @@ export function OrderDataPanel({ order }: { order: Order }) {
       const saved = needsReview ? await confirmReview(order, value) : await saveData(order, value)
       if (saved.stage === 'stored') {
         toast.success('Pedido registrado', { description: 'Cliente guardado en la base de datos.' })
+        onValidated?.()
       } else {
         toast.warning('Faltan datos', {
           description: 'Resuélvelos con el equipo y vuelve a validar.',
@@ -69,11 +71,6 @@ export function OrderDataPanel({ order }: { order: Order }) {
       <Card>
         <CardHeader>
           <CardTitle>Datos del pedido</CardTitle>
-          <CardDescription>
-            {editable
-              ? 'Comprobamos que el cliente, la dirección y los artículos estén identificados.'
-              : 'El pedido ya está en marcha: los datos quedan bloqueados.'}
-          </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5">
           {visibleIssues.length > 0 ? (

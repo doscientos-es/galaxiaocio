@@ -11,6 +11,16 @@ const variants: Record<OrderStage, BadgeProps['variant']> = {
   closed: 'neutral',
 }
 
-export function OrderStageBadge({ stage }: { stage: OrderStage }) {
-  return <Badge variant={variants[stage]}>{stageLabels[stage]}</Badge>
+export function OrderStageBadge({
+  stage,
+  deliveredAt,
+}: {
+  stage: OrderStage
+  deliveredAt?: string | undefined
+}) {
+  return (
+    <Badge variant={deliveredAt ? 'success' : variants[stage]}>
+      {deliveredAt ? 'Recibido' : stageLabels[stage]}
+    </Badge>
+  )
 }

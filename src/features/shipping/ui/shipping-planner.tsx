@@ -59,14 +59,6 @@ export function ShippingPlanner({ order, onShipped }: ShippingPlannerProps) {
     ? carriers.find((item) => item.id === manualCarrierId)
     : chosen?.carrier
   const saved = chosen && result.reference ? result.reference.priceCents - chosen.priceCents : 0
-  const cheapest = result.options[0]
-  const unavailableCheaper =
-    cheapest &&
-    result.recommended &&
-    !cheapest.carrier.hasAccount &&
-    cheapest.priceCents < result.recommended.priceCents
-      ? { carrier: cheapest.carrier, diff: result.recommended.priceCents - cheapest.priceCents }
-      : undefined
   const defaultCost = manualMode || !chosen ? '' : euros(chosen.priceCents)
   const cost = costInput ?? defaultCost
 
@@ -100,9 +92,7 @@ export function ShippingPlanner({ order, onShipped }: ShippingPlannerProps) {
     <Card>
       <CardHeader>
         <CardTitle>Transporte</CardTitle>
-        <CardDescription>
-          Calculamos las opciones según destino, peso y tarifas. Prioridad a agencias con cuenta.
-        </CardDescription>
+        <CardDescription>Calculamos las opciones según destino, peso y tarifas.</CardDescription>
         <div className="flex flex-wrap gap-2 pt-1">
           <Badge variant="neutral">
             {result.zone ? zoneLabels[result.zone] : 'Destino sin tarifa'}
@@ -155,15 +145,6 @@ export function ShippingPlanner({ order, onShipped }: ShippingPlannerProps) {
           </div>
         ) : (
           <div className="grid gap-3">
-            {unavailableCheaper ? (
-              <Alert variant="info">
-                <AlertTitle>{unavailableCheaper.carrier.name} sería más barata</AlertTitle>
-                <AlertDescription>
-                  Ahorrarías {euros(unavailableCheaper.diff)} €, pero todavía no tenéis cuenta con
-                  esa agencia. Recomendamos la más barata de las que sí tenéis.
-                </AlertDescription>
-              </Alert>
-            ) : null}
             <QuoteOptions
               result={result}
               selectedId={chosen?.tariff.id}

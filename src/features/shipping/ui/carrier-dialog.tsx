@@ -1,4 +1,4 @@
-import { Checkbox, Field, FieldError, FieldLabel, Input, toast } from '@doscientos/ui'
+import { Field, FieldError, FieldLabel, Input, toast } from '@doscientos/ui'
 import { useState } from 'react'
 
 import { FormDialog } from '@/shared/ui/form-dialog'
@@ -18,7 +18,6 @@ export function CarrierDialog({ open, onOpenChange, editing, onSave }: CarrierDi
   const [draft, setDraft] = useState<CarrierDraft>(() => ({
     name: editing?.name ?? '',
     portalUrl: editing?.portalUrl ?? 'https://',
-    hasAccount: editing?.hasAccount ?? true,
     notes: editing?.notes ?? '',
   }))
   const [attempted, setAttempted] = useState(false)
@@ -79,9 +78,6 @@ export function CarrierDialog({ open, onOpenChange, editing, onSave }: CarrierDi
           onChange={(event) => patch({ notes: event.target.value })}
         />
       </Field>
-      <Checkbox isSelected={draft.hasAccount} onChange={(hasAccount) => patch({ hasAccount })}>
-        Tenemos cuenta con esta agencia (se recomienda antes que las demás)
-      </Checkbox>
     </FormDialog>
   )
 }

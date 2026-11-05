@@ -6,11 +6,9 @@ import {
   Button,
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  CopyButton,
   Table,
   TableBody,
   TableCell,
@@ -21,31 +19,22 @@ import {
 } from '@doscientos/ui'
 import { Link } from '@tanstack/react-router'
 import { BellRing } from 'lucide-react'
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 
 import {
   evaluateStock,
   type StockLine,
-  type StockLineResult,
   type SupplierStatus,
 } from '../application/stock'
 import { useCatalog } from '../application/use-catalog'
+import { PurchaseDialog } from './purchase-dialog'
 import { StockStatusBadge } from './stock-status-badge'
-
-/** Ready-to-send text so nobody has to retype what must be ordered from the supplier. */
-function supplierMessage(reference: string, lines: StockLineResult[]): string {
-  const supplier = lines.find((line) => line.supplier)?.supplier ?? 'proveedor'
-  const items = lines.map((line) => `- ${line.requested} × ${line.name}`).join('\n')
-  return `Hola, necesitamos pedir a ${supplier} para el pedido ${reference}:\n${items}\n¿Plazo de entrega?`
-}
 
 interface StockPanelProps {
   /** Order reference, used in the supplier message. */
   reference: string
   lines: StockLine[]
   supplierStatus: SupplierStatus
-  /** Called when the team is asked to order the supplier-only items. */
-  onNotifySupplier: (lines: StockLineResult[]) => void
   /** Called when the supplier has delivered the items. */
   onSupplierReceived: () => void
   /** Primary action shown once stock is enough (e.g. prepare the shipment). */
@@ -57,25 +46,22 @@ export function StockPanel({
   reference,
   lines,
   supplierStatus,
-  onNotifySupplier,
   onSupplierReceived,
   action,
 }: StockPanelProps) {
-  const { products } = useCatalog()
+  const { products, suppliers } = useCatalog()
+  const [ordering, setOrdering] = useState(false)
   const evaluation = evaluateStock(lines, products, {
     supplierReceived: supplierStatus === 'received',
   })
   const external = evaluation.lines.filter((line) => line.status === 'external')
   const missing = evaluation.lines.filter((line) => line.status === 'shortage')
+  const toOrder = evaluation.lines.filter((line) => line.missing > 0 && line.status !== 'ok')
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Stock y compras</CardTitle>
-        <CardDescription>
-          Si algún artículo lo sirve un proveedor externo se avisa al equipo; si no, se comprueba el
-          stock.
-        </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
         <Table density="compact">
@@ -131,27 +117,25 @@ export function StockPanel({
         ) : null}
       </CardContent>
       <CardFooter className="flex flex-wrap gap-2 pb-(--card-spacing)!">
-        {external.length > 0 && supplierStatus === 'none' ? (
-          <Button onPress={() => onNotifySupplier(external)}>
-            <BellRing aria-hidden />
-            Avisar al equipo
+        {toOrder.length > 0 ? (
+          <Button variant="outline" onPress={() => setOrdering(true)}>
+            Pedir stock faltante
           </Button>
         ) : null}
-        {external.length > 0 && supplierStatus !== 'received' ? (
-          <CopyButton variant="outline" value={supplierMessage(reference, external)}>
-            Copiar pedido al proveedor
-          </CopyButton>
-        ) : null}
-        {external.length > 0 && supplierStatus === 'notified' ? (
-          <>
-            <Badge variant="info">Equipo avisado</Badge>
-            <Button variant="outline" onPress={onSupplierReceived}>
-              Marcar como recibido del proveedor
-            </Button>
-          </>
+        {external.length > 0 ? (
+          <Button variant="outline" onPress={onSupplierReceived}>
+            Marcar como recibido del proveedor
+          </Button>
         ) : null}
         {evaluation.status === 'ok' ? action : null}
       </CardFooter>
+      <PurchaseDialog
+        open={ordering}
+        onClose={() => setOrdering(false)}
+        lines={toOrder}
+        suppliers={suppliers}
+        reference={reference}
+      />
     </Card>
   )
 }

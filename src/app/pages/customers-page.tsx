@@ -18,14 +18,33 @@ import {
   TableRow,
 } from '@doscientos/ui'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 
 import { useOrders } from '@/features/orders'
 import { formatDate } from '@/shared/lib/format'
+import { matchesSearch } from '@/shared/lib/search'
+import { ListControls } from '@/shared/ui/list-controls'
+import { ListPagination, useListPagination } from '@/shared/ui/list-pagination'
+
+type CustomerFilter = 'all' | 'with-orders' | 'without-orders'
+const labels: Record<CustomerFilter, string> = {
+  all: 'Todos', 'with-orders': 'Con pedidos', 'without-orders': 'Sin pedidos',
+}
 
 /** The customer database: every validated order saves its customer here, once. */
 export function CustomersPage() {
-  const { customers, orders } = useOrders()
-  const sorted = [...customers].sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  const { customers, orders, customersLoading, isLoading } = useOrders()
+  const [query, setQuery] = useState('')
+  const [filter, setFilter] = useState<CustomerFilter>('all')
+  const orderCounts = new Map<string, number>()
+  for (const order of orders) {
+    if (order.customerId) orderCounts.set(order.customerId, (orderCounts.get(order.customerId) ?? 0) + 1)
+  }
+  const matching = customers.filter((customer) => matchesSearch(query, [customer.name, customer.taxId, customer.email, customer.phone]))
+  const withOrders = matching.filter((customer) => orderCounts.has(customer.id)).length
+  const visible = matching.filter((customer) => filter === 'all' || orderCounts.has(customer.id) === (filter === 'with-orders'))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+  const pagination = useListPagination(visible, JSON.stringify([query, filter]))
 
   return (
     <PageStack>
@@ -38,12 +57,24 @@ export function CustomersPage() {
           </PageHeaderDescription>
         </PageHeaderHeading>
       </PageHeader>
-      {sorted.length === 0 ? (
+      {customersLoading || isLoading ? <output>Cargando clientes…</output> : <>
+      <ListControls
+        query={query} onQueryChange={(value) => { setQuery(value); pagination.setPage(1) }}
+        searchLabel="Buscar clientes" placeholder="Buscar por nombre, NIF, email o teléfono"
+        filterLabel="Filtrar clientes" selected={filter}
+        onFilterChange={(value) => { setFilter(value); pagination.setPage(1) }}
+        filters={[
+          { id: 'all', label: labels.all, count: matching.length },
+          { id: 'with-orders', label: labels['with-orders'], count: withOrders },
+          { id: 'without-orders', label: labels['without-orders'], count: matching.length - withOrders },
+        ]}
+      />
+      {visible.length === 0 ? (
         <EmptyState>
           <EmptyStateHeader>
-            <EmptyStateTitle>Aún no hay clientes</EmptyStateTitle>
+            <EmptyStateTitle>{customers.length ? 'No hay clientes en esta vista' : 'Aún no hay clientes'}</EmptyStateTitle>
             <EmptyStateDescription>
-              Se guardan automáticamente al validar el primer pedido.
+              {customers.length ? 'Prueba con otra búsqueda o cambia el filtro.' : 'Se guardan automáticamente al validar el primer pedido.'}
             </EmptyStateDescription>
           </EmptyStateHeader>
         </EmptyState>
@@ -60,26 +91,25 @@ export function CustomersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map((customer) => {
-                const own = orders.filter((order) => order.customerId === customer.id)
-                const last = own[0]
+              {pagination.items.map((customer) => {
+                const count = orderCounts.get(customer.id) ?? 0
                 return (
                   <TableRow key={customer.id}>
-                    <TableCell className="font-medium">{customer.name}</TableCell>
+                    <TableCell className="font-medium"><Link to="/clientes/$customerId" params={{ customerId: customer.id }} className="text-primary underline-offset-4 hover:underline">{customer.name}</Link></TableCell>
                     <TableCell>{customer.taxId || '—'}</TableCell>
                     <TableCell>
                       <p>{customer.email || '—'}</p>
                       <p className="text-muted-foreground text-xs">{customer.phone}</p>
                     </TableCell>
                     <TableCell>
-                      {last ? (
+                      {count ? (
                         <TableNumber>
                           <Link
-                            to="/pedidos/$orderId"
-                            params={{ orderId: last.id }}
+                            to="/clientes/$customerId"
+                            params={{ customerId: customer.id }}
                             className="underline-offset-4 hover:underline"
                           >
-                            {own.length}
+                            {count}
                           </Link>
                         </TableNumber>
                       ) : (
@@ -94,6 +124,8 @@ export function CustomersPage() {
           </Table>
         </Card>
       )}
+      <ListPagination controller={pagination} singular="cliente" plural="clientes" />
+      </>}
     </PageStack>
   )
 }

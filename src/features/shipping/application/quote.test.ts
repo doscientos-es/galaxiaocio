@@ -25,12 +25,23 @@ describe('zoneFor and serviceFor', () => {
 })
 
 describe('quoteShipment', () => {
-  it('recommends the cheapest carrier the team has an account with', () => {
+  it('excludes unconfigured carriers and recommends the cheapest remaining option', () => {
     const quote = quoteShipment(madrid, 60, carriers, tariffs)
     const cheapest = quote.options[0]
-    expect(cheapest?.carrier.id).toBe('redur')
-    expect(cheapest?.carrier.hasAccount).toBe(false)
+    expect(quote.options.map((option) => option.carrier.id)).not.toContain('redur')
+    expect(cheapest?.carrier.id).toBe('palibex')
     expect(quote.recommended?.carrier.id).toBe('palibex')
+  })
+
+  it('returns no quote if only unconfigured carriers have tariffs', () => {
+    const quote = quoteShipment(
+      madrid,
+      60,
+      carriers.filter((carrier) => !carrier.hasAccount),
+      tariffs,
+    )
+    expect(quote.options).toEqual([])
+    expect(quote.recommended).toBeUndefined()
   })
 
   it('orders options by price and uses the dearest as the saving reference', () => {

@@ -1,4 +1,4 @@
-import { Field, FieldLabel, QuantityInput, toast } from '@doscientos/ui'
+import { Field, FieldDescription, FieldLabel, QuantityInput, toast } from '@doscientos/ui'
 import { useState } from 'react'
 
 import { FormDialog } from '@/shared/ui/form-dialog'
@@ -12,16 +12,16 @@ interface RestockDialogProps {
 }
 
 export function RestockDialog({ product, onClose, onSave }: RestockDialogProps) {
-  const [quantity, setQuantity] = useState(10)
+  const [quantity, setQuantity] = useState(0)
   const [saving, setSaving] = useState(false)
-  const validQuantity = Number.isFinite(quantity) && quantity >= 1
+  const validQuantity = Number.isInteger(quantity) && quantity >= 1
 
   async function submit() {
     if (!product || !validQuantity) return
     setSaving(true)
     try {
       await onSave(product.sku, quantity)
-      toast.success('Stock repuesto', { description: `${product.name}: +${quantity} uds.` })
+      toast.success('Recepción registrada', { description: `${product.name}: +${quantity} uds.` })
       onClose()
     } finally {
       setSaving(false)
@@ -32,9 +32,9 @@ export function RestockDialog({ product, onClose, onSave }: RestockDialogProps) 
     <FormDialog
       open={product !== undefined}
       onOpenChange={(open) => !open && onClose()}
-      title="Reponer stock"
+      title="Registrar recepción"
       description={product ? `${product.sku} · ${product.name}` : undefined}
-      submitLabel="Reponer"
+      submitLabel="Registrar recepción"
       loading={saving}
       submitDisabled={!validQuantity}
       onSubmit={() => void submit()}
@@ -48,6 +48,7 @@ export function RestockDialog({ product, onClose, onSave }: RestockDialogProps) 
           minValue={1}
           onChange={setQuantity}
         />
+        <FieldDescription>Registra únicamente unidades que ya hayan llegado.</FieldDescription>
       </Field>
     </FormDialog>
   )

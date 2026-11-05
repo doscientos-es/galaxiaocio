@@ -90,9 +90,6 @@ export function QuoteSimulator() {
                       {option.tariff.id === result.recommended?.tariff.id ? (
                         <Badge variant="success">Recomendada</Badge>
                       ) : null}
-                      {!option.carrier.hasAccount ? (
-                        <Badge variant="warning">Sin cuenta</Badge>
-                      ) : null}
                     </span>
                     <code className="text-muted-foreground text-xs">{option.tariff.formula}</code>
                   </TableCell>

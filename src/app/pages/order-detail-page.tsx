@@ -1,7 +1,4 @@
 import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
   Badge,
   Button,
   DataViewState,
@@ -17,12 +14,11 @@ import {
   toast,
 } from '@doscientos/ui'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ArrowLeft, CircleCheck, Hourglass, PackageCheck, Zap } from 'lucide-react'
+import { ArrowLeft, PackageCheck } from 'lucide-react'
 import { useState } from 'react'
 
-import { BillingPanel, useBilling } from '@/features/billing'
+import { useBilling } from '@/features/billing'
 import {
-  evaluateStock,
   InsufficientStockError,
   orderTotals,
   StockPanel,
@@ -30,18 +26,35 @@ import {
 } from '@/features/catalog'
 import {
   ChannelLabel,
+  OrderCustomerLink,
   OrderDataPanel,
   OrderProgress,
   OrderStageBadge,
   useOrders,
+  withOrderOperation,
+  type Order,
 } from '@/features/orders'
-import { ShippingPanel } from '@/features/shipping'
+import { ShippingPanel, type Shipment } from '@/features/shipping'
 import { formatCents } from '@/shared/lib/format'
 
-import { nextStep } from './next-step'
+import { SentOrderDetail } from './sent-order-detail'
 
-const stepIcons = { action: Zap, waiting: Hourglass, done: CircleCheck } as const
-const stepVariants = { action: 'info', waiting: 'warning', done: 'success' } as const
+function PreviousOrderData({ order }: { order: Order }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <section className="grid gap-3">
+      <Button
+        className="w-fit"
+        variant="outline"
+        aria-expanded={open}
+        onPress={() => setOpen(!open)}
+      >
+        {open ? 'Ocultar datos del pedido' : 'Ver datos del pedido'}
+      </Button>
+      {open ? <OrderDataPanel order={order} onValidated={() => setOpen(false)} /> : null}
+    </section>
+  )
+}
 
 /**
  * One order, one screen: the agreed flow from validation to administration.
@@ -49,7 +62,7 @@ const stepVariants = { action: 'info', waiting: 'warning', done: 'success' } as 
  */
 export function OrderDetailPage({ orderId }: { orderId: string }) {
   const navigate = useNavigate()
-  const { orders, advance, setSupplierStatus, logActivity, getLatest } = useOrders()
+  const { orders, customers, advance, markDelivered, setSupplierStatus, logActivity, getLatest } = useOrders()
   const { products, reserve } = useCatalog()
   const { issueDocuments } = useBilling()
   const [preparing, setPreparing] = useState(false)
@@ -59,7 +72,9 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
     return (
       <DataViewState>
         <DataViewStateTitle>Pedido no encontrado</DataViewStateTitle>
-        <DataViewStateDescription>Puede que se haya restablecido la demo.</DataViewStateDescription>
+        <DataViewStateDescription>
+          Puede que se hayan restablecido los datos.
+        </DataViewStateDescription>
         <DataViewStateActions>
           <Link to="/pedidos" className="text-sm underline">
             Volver a pedidos
@@ -76,35 +91,47 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
     if (!order || preparing) return
     setPreparing(true)
     try {
-      // Re-read the order: if it already moved on (double click), do not reserve stock twice.
-      if ((await getLatest(order)).stage !== 'stored') return
-      await reserve(order.lines, order.supplierStatus)
-      await advance(order, 'ready')
-      await log('Listo para expedición', 'Stock reservado', 'success')
-      toast.success('Pedido preparado para expedición', {
-        description: 'El stock se ha reservado.',
+      await withOrderOperation(order.id, async () => {
+        // Re-read inside the lock so a deleted or already prepared order cannot reserve stock.
+        const current = await getLatest(order)
+        if (current.stage !== 'stored') return
+        await reserve(current.lines, current.supplierStatus)
+        await advance(current, 'ready')
+        await log('Listo para expedición', 'Stock reservado', 'success')
+        toast.success('Pedido preparado para expedición', {
+          description: 'El stock se ha reservado.',
+        })
       })
     } catch (error) {
-      if (!(error instanceof InsufficientStockError)) throw error
-      toast.error('Otro pedido se ha llevado el stock', { description: error.message })
+      if (error instanceof InsufficientStockError) {
+        toast.error('Otro pedido se ha llevado el stock', { description: error.message })
+      } else {
+        toast.error('No se ha podido preparar el pedido', {
+          description: error instanceof Error ? error.message : 'Inténtalo de nuevo.',
+        })
+      }
     } finally {
       setPreparing(false)
     }
   }
 
-  const stock = evaluateStock(order.lines, products, {
-    supplierReceived: order.supplierStatus === 'received',
-  })
-  const step = nextStep({
-    stage: order.stage,
-    stock: stock.status,
-    supplierStatus: order.supplierStatus,
-    marketplace: order.marketplace,
-  })
-  const StepIcon = stepIcons[step.tone]
+  async function handleShipped(shipment: Shipment) {
+    if (!order) return
+    await advance(order, 'shipped')
+    await log('Pedido enviado', shipment.carrierName, 'success')
+    const documents = await issueDocuments(order)
+    await log(
+      'Documentos generados',
+      documents.map((document) => document.number).join(' · '),
+      'success',
+    )
+    toast.success('Albarán y factura generados', {
+      description: documents.map((document) => document.number).join(' · '),
+    })
+  }
+
   const totals = orderTotals(order.lines, products)
-  const beyondStock =
-    order.stage === 'ready' || order.stage === 'shipped' || order.stage === 'closed'
+  const customerIds = new Set(customers.map((customer) => customer.id))
 
   return (
     <PageStack>
@@ -112,10 +139,10 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
         <PageHeaderHeading>
           <PageHeaderTitle>{order.reference}</PageHeaderTitle>
           <PageHeaderDescription className="flex flex-wrap items-center gap-3">
-            <span>{order.customer.name || 'Cliente sin identificar'}</span>
+            <OrderCustomerLink order={order} customerIds={customerIds} />
             <ChannelLabel channel={order.channel} marketplace={order.marketplace} />
-            <OrderStageBadge stage={order.stage} />
-            {order.customerId ? <Badge variant="neutral">Cliente guardado</Badge> : null}
+            <OrderStageBadge stage={order.stage} deliveredAt={order.deliveredAt} />
+            {order.customerId && customerIds.has(order.customerId) ? <Badge variant="neutral">Cliente guardado</Badge> : null}
             {totals.totalCents > 0 ? (
               <span className="text-foreground font-medium tabular-nums">
                 {formatCents(totals.totalCents)}{' '}
@@ -131,66 +158,51 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
           </Button>
         </PageHeaderActions>
       </PageHeader>
-      <OrderProgress stage={order.stage} />
-      <Alert variant={stepVariants[step.tone]}>
-        <StepIcon aria-hidden />
-        <AlertTitle>{step.title}</AlertTitle>
-        <AlertDescription>{step.detail}</AlertDescription>
-      </Alert>
-      <OrderDataPanel key={order.id} order={order} />
-      {order.stage === 'stored' ? (
-        <StockPanel
-          reference={order.reference}
-          lines={order.lines}
-          supplierStatus={order.supplierStatus}
-          onNotifySupplier={(lines) => {
-            void setSupplierStatus(order, 'notified')
-            void log(
-              'Avisado al equipo para pedir al proveedor',
-              lines.map((line) => line.name).join(', '),
-            )
-            toast.info('Equipo avisado', { description: 'Pedir al proveedor externo.' })
-          }}
-          onSupplierReceived={() => {
-            void setSupplierStatus(order, 'received')
-            void log('Material recibido del proveedor', 'Listo para preparar', 'success')
-          }}
-          action={
-            <Button isDisabled={preparing} onPress={() => void prepareShipment()}>
-              <PackageCheck aria-hidden />
-              Preparar expedición
-            </Button>
-          }
-        />
-      ) : null}
-      {beyondStock ? (
-        <ShippingPanel
-          order={order}
-          onShipped={async (shipment) => {
-            await advance(order, 'shipped')
-            await log('Pedido enviado', shipment.carrierName, 'success')
-            // The delivery note and invoice are produced from the order data, no extra click.
-            const documents = await issueDocuments(order)
-            await log(
-              'Documentos generados',
-              documents.map((document) => document.number).join(' · '),
-              'success',
-            )
-            toast.success('Albarán y factura generados', {
-              description: documents.map((document) => document.number).join(' · '),
-            })
-          }}
-        />
-      ) : null}
       {order.stage === 'shipped' || order.stage === 'closed' ? (
-        <BillingPanel
+        <SentOrderDetail
           order={order}
+          customerIds={customerIds}
+          onDelivered={async () => {
+            if (await markDelivered(order.id)) {
+              await log('Pedido recibido', 'Entrega confirmada manualmente', 'success')
+              toast.success('Pedido marcado como recibido')
+            }
+          }}
           onPrepared={async () => {
             await advance(order, 'closed')
             await log('Preparado para el gestor', 'Albarán y factura', 'success')
           }}
         />
-      ) : null}
+      ) : <>
+        <p className="text-muted-foreground text-sm">
+          {order.customer.phone || 'Sin teléfono'} · {order.customer.email || 'Sin email'}
+        </p>
+        <OrderProgress stage={order.stage} />
+        {order.stage === 'review' || order.stage === 'incomplete' ? (
+          <OrderDataPanel key={order.id} order={order} />
+        ) : null}
+        {order.stage === 'stored' ? (
+          <StockPanel
+            reference={order.reference}
+            lines={order.lines}
+            supplierStatus={order.supplierStatus}
+            onSupplierReceived={() => {
+              void setSupplierStatus(order, 'received')
+              void log('Material recibido del proveedor', 'Listo para preparar', 'success')
+            }}
+            action={
+              <Button isDisabled={preparing} onPress={() => void prepareShipment()}>
+                <PackageCheck aria-hidden />
+                Preparar expedición
+              </Button>
+            }
+          />
+        ) : null}
+        {order.stage === 'ready' ? <ShippingPanel order={order} onShipped={handleShipped} /> : null}
+        {order.stage !== 'review' && order.stage !== 'incomplete' ? (
+          <PreviousOrderData key={`${order.id}-${order.stage}`} order={order} />
+        ) : null}
+      </>}
     </PageStack>
   )
 }

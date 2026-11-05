@@ -14,6 +14,7 @@ describe('nextStep', () => {
     expect(nextStep({ ...base, stage: 'stored', stock: 'external' })).toMatchObject({
       tone: 'action',
       title: 'Hay que pedir al proveedor',
+      detail: 'Solicita el artículo al proveedor y marca su recepción cuando llegue.',
     })
     expect(
       nextStep({ ...base, stage: 'stored', stock: 'external', supplierStatus: 'notified' }).tone,

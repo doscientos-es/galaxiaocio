@@ -1,5 +1,7 @@
 import type { Product } from '../application/product'
 
+export const exampleStockSupplier = 'Distribuciones de ejemplo'
+
 type SeedRow = [
   sku: string,
   name: string,
@@ -31,7 +33,7 @@ export function createSeedProducts(): Product[] {
     priceCents: priceEuros * 100,
     weightKg,
     fulfillment: 'own_stock' as const,
-    supplier: null,
+    supplier: exampleStockSupplier,
   }))
   const external: Product = {
     id: 'hrn-fm6',
