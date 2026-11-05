@@ -1,3 +1,5 @@
+import { demoProducts } from '@/shared/lib/demo/seed-data'
+
 import type { Product } from '../application/product'
 
 export const exampleStockSupplier = 'Distribuciones de ejemplo'
@@ -46,5 +48,5 @@ export function createSeedProducts(): Product[] {
     fulfillment: 'external_supplier',
     supplier: 'FM Industrial',
   }
-  return [external, ...base]
+  return [external, ...base, ...demoProducts]
 }

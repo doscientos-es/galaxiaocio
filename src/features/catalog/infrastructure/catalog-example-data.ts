@@ -1,10 +1,11 @@
 import type { KeyValueStore } from '@/shared/lib/storage/key-value-store'
+import { demoSuppliers } from '@/shared/lib/demo/seed-data'
 
 import { productSchema } from '../application/product'
 import { supplierSchema, type Supplier } from '../application/supplier'
 import { createSeedProducts, exampleStockSupplier } from './seed-products'
 
-export function createSeedSuppliers(): [Supplier, Supplier] {
+export function createSeedSuppliers(): [Supplier, Supplier, ...Supplier[]] {
   return [
     { id: 'fm industrial', name: 'FM Industrial', email: 'fm@example.com', url: '' },
     {
@@ -13,6 +14,7 @@ export function createSeedSuppliers(): [Supplier, Supplier] {
       email: 'pedidos@example.com',
       url: '',
     },
+    ...demoSuppliers,
   ]
 }
 
