@@ -95,7 +95,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
     <SidebarProvider>
       <Sidebar variant="inset">
         <SidebarHeader className="gap-0.5 px-4 pt-4 pb-2">
-          <p className="text-base leading-tight font-semibold tracking-tight">Galaxiaocio</p>
+          <p className="text-base leading-tight font-semibold tracking-tight">Gasfrit</p>
           <p className="text-muted-foreground text-xs">Gestión de pedidos</p>
         </SidebarHeader>
         <SidebarContent>

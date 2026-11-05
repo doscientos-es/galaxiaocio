@@ -60,7 +60,7 @@ describe('demo flow', () => {
     await user.type(within(dialog).getByLabelText('Base de compra Distribuciones de ejemplo'), '100,00')
     await user.type(within(dialog).getByLabelText('IVA de compra Distribuciones de ejemplo'), '21')
     await user.click(within(dialog).getByRole('button', { name: 'Registrar compra y gasto' }))
-    expect(await within(dialog).findByRole('button', { name: 'Compra registrada' })).toBeDisabled()
+    expect((await within(dialog).findByRole('button', { name: 'Compra registrada' })).hasAttribute('disabled')).toBe(true)
     const expenses = JSON.parse(localStorage.getItem('galaxiaocio-demo:v1:expenses') ?? '[]')
     expect(expenses).toHaveLength(1)
     expect(expenses[0]).toMatchObject({ netCents: 10000, vatCents: 2100, source: 'stock', description: expect.stringContaining('3 × Vitrina') })
