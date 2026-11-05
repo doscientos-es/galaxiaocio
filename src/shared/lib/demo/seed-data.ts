@@ -35,7 +35,7 @@ const productRows: Array<[string, string, number, number, number, number]> = [
 
 export const demoProducts = productRows.map(([sku, name, stock, minStock, euros, weightKg], index) => ({
   id: sku.toLowerCase(), sku, name, stock, minStock, priceCents: euros * 100, weightKg,
-  fulfillment: 'own_stock' as const, supplier: demoSuppliers[index % demoSuppliers.length]!.name,
+  fulfillment: 'own_stock' as const, supplier: demoSuppliers[index % demoSuppliers.length]?.name ?? '',
 }))
 
 const customerRows = [
@@ -56,23 +56,27 @@ const customerRows = [
 export function createDemoScenarios(now: Date = new Date()) {
   return Array.from({ length: 36 }, (_, index) => {
     const customerIndex = index % customerRows.length
-    const [name, city, postalCode] = customerRows[customerIndex]!
+    const [name, city, postalCode] = customerRows[customerIndex] ?? customerRows[0]
     const stage = index < 12 ? 'stored' as const : index < 24 ? 'shipped' as const : 'closed' as const
     const hours = 72 + index * 24
     const at = (offset: number) => new Date(now.getTime() - (hours - offset) * 3_600_000).toISOString()
-    const products = [demoProducts[(index * 3) % demoProducts.length]!, demoProducts[(index * 3 + 5) % demoProducts.length]!]
+    const products = [demoProducts[(index * 3) % demoProducts.length], demoProducts[(index * 3 + 5) % demoProducts.length]]
+    if (products.some((product) => !product)) throw new Error('Faltan productos iniciales')
     return {
       id: `ord-demo-${index + 1}`,
       reference: formatReference('PED', now.getFullYear(), index + 7),
       customerId: `cus-demo-${customerIndex + 1}`,
       customer: { name, taxId: `B${String(20000000 + customerIndex).padStart(8, '0')}`, email: `cliente${customerIndex + 1}@galaxiaocio.example`, phone: `600${String(100000 + customerIndex).padStart(6, '0')}` },
       address: { street: `Calle Comercio ${customerIndex + 1}`, postalCode, city, country: 'ES' },
-      channel: (['web', 'email', 'manual'] as const)[index % 3]!,
+      channel: (['web', 'email', 'manual'] as const)[index % 3] ?? 'web',
       stage, receivedAt: at(0), shippedAt: at(12), issuedAt: at(18), deliveredAt: at(21),
-      lines: products.map((product, lineIndex) => ({
-        id: `line-demo-${index + 1}-${lineIndex + 1}`, sku: product.sku, description: product.name,
-        quantity: 1 + ((index + lineIndex) % 3), unitCents: product.priceCents, weightKg: product.weightKg,
-      })),
+      lines: products.map((product, lineIndex) => {
+        if (!product) throw new Error('Falta un producto inicial')
+        return {
+          id: `line-demo-${index + 1}-${lineIndex + 1}`, sku: product.sku, description: product.name,
+          quantity: 1 + ((index + lineIndex) % 3), unitCents: product.priceCents, weightKg: product.weightKg,
+        }
+      }),
     }
   })
 }

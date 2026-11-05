@@ -29,7 +29,7 @@ export function AccountingPage() {
   const [removing, setRemoving] = useState<Expense>()
   const [kind, setKind] = useState<PeriodKind>('month')
   const [offset, setOffset] = useState(0)
-  const now = new Date()
+  const [now] = useState(() => new Date())
   const period = periodFor(now, kind, offset)
   const totals = accountingFor(documents, expenses, period)
   const periodDocuments = documents.filter((doc) => {

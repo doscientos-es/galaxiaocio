@@ -12,7 +12,7 @@ export function ExpenseDialog({ expense, onClose, onSave }: {
   onClose: () => void
   onSave: (expense: Expense) => Promise<unknown>
 }) {
-  const [date, setDate] = useState(expense?.date ?? localDate(new Date()))
+  const [date, setDate] = useState(() => expense?.date ?? localDate(new Date()))
   const [description, setDescription] = useState(expense?.description ?? '')
   const [supplier, setSupplier] = useState(expense?.supplier ?? '')
   const [reference, setReference] = useState(expense?.reference ?? '')

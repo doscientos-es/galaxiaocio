@@ -37,7 +37,8 @@ describe('demo data reset', () => {
         expect(ownDocuments).toHaveLength(0)
       } else {
         expect(shipment).toBeDefined()
-        expect(shipment!.createdAt >= order.receivedAt).toBe(true)
+        if (!shipment) throw new Error('Falta la expedición')
+        expect(shipment.createdAt >= order.receivedAt).toBe(true)
         expect(ownDocuments).toHaveLength(order.stage === 'closed' ? 2 : 0)
         for (const document of ownDocuments) {
           expect(document.orderReference).toBe(order.reference)

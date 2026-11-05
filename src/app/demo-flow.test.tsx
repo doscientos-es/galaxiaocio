@@ -335,7 +335,14 @@ describe('demo flow', () => {
     ['/resumen', 'Restaurante El Rincón del Mar', '/clientes/cus-seed-1'],
     ['/pedidos/ord-seed-6', 'Cafetería Aurora', '/clientes/cus-seed-6'],
   ])('links saved customers from %s', async (path, name, href) => {
+    if (path === '/resumen') {
+      localStorage.setItem('galaxiaocio-demo:v1:orders', JSON.stringify(createSeedOrders().filter((order) => order.id === 'ord-seed-1')))
+    }
     renderAt(path)
+    if (path === '/clientes') {
+      const search = await screen.findByLabelText('Buscar clientes')
+      await userEvent.setup().type(search, name)
+    }
     const links = await screen.findAllByRole('link', { name })
     expect(links.every((link) => link.getAttribute('href') === href)).toBe(true)
   })
@@ -535,7 +542,7 @@ describe('demo flow', () => {
     for (const name of ['Pedidos', 'Clientes', 'Agencias y tarifas', 'Restablecer datos']) {
       expect(screen.getByRole('button', { name }).hasAttribute('data-active')).toBe(false)
     }
-    expect(screen.queryByText('Galaxiaocio')).toBeTruthy()
+    expect(screen.queryByText('Gasfrit')).toBeTruthy()
   })
 
   it('lets the team edit a tariff formula and uses it right away', async () => {
