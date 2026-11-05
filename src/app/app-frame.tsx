@@ -71,7 +71,7 @@ const navigation: Array<{ to: NavigationPath; label: string; icon: LucideIcon }>
   { to: '/catalogo', label: 'Catálogo', icon: BookOpen },
   { to: '/stock', label: 'Stock', icon: Package },
   { to: '/transporte', label: 'Agencias y tarifas', icon: Truck },
-  { to: '/administracion', label: 'Administración', icon: FileText },
+  { to: '/administracion', label: 'Contabilidad', icon: FileText },
 ]
 
 export function AppFrame({ children }: { children: ReactNode }) {

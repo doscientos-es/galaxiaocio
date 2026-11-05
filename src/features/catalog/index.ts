@@ -1,6 +1,7 @@
 export { CatalogProvider } from './application/catalog-repository'
 export type { CatalogRepository } from './application/catalog-repository'
 export type { Product } from './application/product'
+export type { StockPurchase } from './application/purchase'
 export {
   evaluateStock,
   reserveStock,

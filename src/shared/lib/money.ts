@@ -1,5 +1,12 @@
 export const VAT_RATE = 0.21
 
+export function parseEuros(value: string): number | undefined {
+  const text = value.trim().replace(',', '.')
+  if (!/^\d+(\.\d{1,2})?$/.test(text)) return undefined
+  const cents = Math.round(Number(text) * 100)
+  return Number.isSafeInteger(cents) ? cents : undefined
+}
+
 export interface Totals {
   netCents: number
   vatCents: number

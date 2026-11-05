@@ -22,6 +22,7 @@ import { useState } from 'react'
 import { formatCents, formatKg } from '@/shared/lib/format'
 
 import type { Product } from '../application/product'
+import type { StockPurchase } from '../application/purchase'
 import { useCatalog } from '../application/use-catalog'
 import { PurchaseDialog } from './purchase-dialog'
 import { RestockDialog } from './restock-dialog'
@@ -65,9 +66,10 @@ function StockCell({ product }: { product: Product }) {
 interface StockPageProps {
   /** Orders blocked by missing stock, grouped by SKU. Computed by the app, which knows both features. */
   waitingBySku?: Record<string, WaitingOrder[]>
+  onPurchase: (purchase: StockPurchase) => Promise<void>
 }
 
-export function StockPage({ waitingBySku = {} }: StockPageProps) {
+export function StockPage({ waitingBySku = {}, onPurchase }: StockPageProps) {
   const { products, suppliers, restock } = useCatalog()
   const [restocking, setRestocking] = useState<Product>()
   const [ordering, setOrdering] = useState<Product>()
@@ -152,6 +154,7 @@ export function StockPage({ waitingBySku = {} }: StockPageProps) {
         open={ordering !== undefined}
         onClose={() => setOrdering(undefined)}
         suppliers={suppliers}
+        onPurchase={onPurchase}
         lines={
           ordering
             ? [

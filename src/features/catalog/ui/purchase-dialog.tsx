@@ -1,9 +1,11 @@
-import { CopyButton } from '@doscientos/ui'
+import { Button, CopyButton, Field, FieldLabel, Input, toast } from '@doscientos/ui'
 import { Link } from '@tanstack/react-router'
+import { useState } from 'react'
 
+import { parseEuros } from '@/shared/lib/money'
 import { FormDialog } from '@/shared/ui/form-dialog'
 
-import { groupMissingBySupplier, purchaseMessage, safeSupplierUrl } from '../application/purchase'
+import { groupMissingBySupplier, purchaseMessage, safeSupplierUrl, type PurchaseGroup, type StockPurchase } from '../application/purchase'
 import type { StockLineResult } from '../application/stock'
 import type { Supplier } from '../application/supplier'
 
@@ -13,6 +15,7 @@ interface PurchaseDialogProps {
   lines: StockLineResult[]
   suppliers: Supplier[]
   reference?: string
+  onPurchase: (purchase: StockPurchase) => Promise<void>
 }
 
 export function PurchaseDialog({
@@ -21,6 +24,7 @@ export function PurchaseDialog({
   lines,
   suppliers,
   reference,
+  onPurchase,
 }: PurchaseDialogProps) {
   const groups = groupMissingBySupplier(lines, suppliers)
   return (
@@ -100,9 +104,54 @@ export function PurchaseDialog({
                 </div>
               </>
             ) : null}
+            <PurchaseRegistration group={group} reference={reference} onPurchase={onPurchase} />
           </section>
         )
       })}
     </FormDialog>
   )
+}
+
+function PurchaseRegistration({ group, reference, onPurchase }: {
+  group: PurchaseGroup
+  reference: string | undefined
+  onPurchase: (purchase: StockPurchase) => Promise<void>
+}) {
+  const [base, setBase] = useState('')
+  const [vat, setVat] = useState('')
+  const [quantity, setQuantity] = useState('1')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const netCents = parseEuros(base)
+  const vatCents = parseEuros(vat)
+  const quantityNumber = Number(quantity)
+
+  async function register() {
+    if (saving || saved || netCents === undefined || vatCents === undefined ||
+      (!reference && (!Number.isSafeInteger(quantityNumber) || quantityNumber < 1))) return
+    setSaving(true)
+    try {
+      await onPurchase({
+        supplier: group.name ?? '', reference: reference ?? '', netCents, vatCents,
+        description: group.lines.map((line) => `${reference ? line.missing : quantityNumber} × ${line.name} (${line.sku})`).join(', '),
+      })
+      setSaved(true)
+      toast.success('Compra registrada en contabilidad')
+    } catch {
+      toast.error('No se ha podido registrar la compra')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return <div className="grid gap-3 border-t pt-3">
+    <p className="text-sm font-medium">Registrar compra y gasto</p>
+    <p className="text-muted-foreground text-xs">Cuando hayas realizado la compra, indica su importe. No se envía ningún pedido ni se modifica el stock.</p>
+    <div className="grid gap-3 sm:grid-cols-3">
+      {!reference ? <Field><FieldLabel>Unidades</FieldLabel><Input aria-label="Unidades de compra" type="number" min="1" step="1" value={quantity} onChange={(event) => setQuantity(event.target.value)} /></Field> : null}
+      <Field><FieldLabel>Base de compra (€)</FieldLabel><Input aria-label={`Base de compra ${group.name ?? 'sin proveedor'}`} inputMode="decimal" value={base} onChange={(event) => setBase(event.target.value)} /></Field>
+      <Field><FieldLabel>IVA de compra (€)</FieldLabel><Input aria-label={`IVA de compra ${group.name ?? 'sin proveedor'}`} inputMode="decimal" value={vat} onChange={(event) => setVat(event.target.value)} /></Field>
+    </div>
+    <Button variant="outline" isDisabled={saved || saving || netCents === undefined || vatCents === undefined || (!reference && (!Number.isSafeInteger(quantityNumber) || quantityNumber < 1))} onPress={() => void register()}>{saved ? 'Compra registrada' : 'Registrar compra y gasto'}</Button>
+  </div>
 }

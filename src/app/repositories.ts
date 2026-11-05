@@ -31,6 +31,7 @@ export async function resetDemoData(): Promise<void> {
       shipping.tariffs,
       shipping.shipments,
       billing.documents,
+      billing.expenses,
     ].map((collection) => collection.reset()),
   )
 }

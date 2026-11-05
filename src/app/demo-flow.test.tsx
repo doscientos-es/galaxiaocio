@@ -49,6 +49,50 @@ function renderAt(path: string) {
 }
 
 describe('demo flow', () => {
+  it('registers a stock purchase once with its real amounts and shows it in accounting', async () => {
+    localStorage.setItem('galaxiaocio-demo:v1:expenses', '[]')
+    const user = userEvent.setup()
+    renderAt('/stock')
+    await user.click(await screen.findByRole('button', { name: 'Pedir más Vitrina refrigerada 120 cm' }))
+    const dialog = await screen.findByRole('dialog', { name: 'Pedir más' })
+    await user.clear(within(dialog).getByLabelText('Unidades de compra'))
+    await user.type(within(dialog).getByLabelText('Unidades de compra'), '3')
+    await user.type(within(dialog).getByLabelText('Base de compra Distribuciones de ejemplo'), '100,00')
+    await user.type(within(dialog).getByLabelText('IVA de compra Distribuciones de ejemplo'), '21')
+    await user.click(within(dialog).getByRole('button', { name: 'Registrar compra y gasto' }))
+    expect(await within(dialog).findByRole('button', { name: 'Compra registrada' })).toBeDisabled()
+    const expenses = JSON.parse(localStorage.getItem('galaxiaocio-demo:v1:expenses') ?? '[]')
+    expect(expenses).toHaveLength(1)
+    expect(expenses[0]).toMatchObject({ netCents: 10000, vatCents: 2100, source: 'stock', description: expect.stringContaining('3 × Vitrina') })
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    await user.click(screen.getByRole('button', { name: 'Contabilidad' }))
+    expect(await screen.findByText(/3 × Vitrina refrigerada 120 cm/)).toBeTruthy()
+  })
+
+  it('creates, edits and removes a manual expense', async () => {
+    localStorage.setItem('galaxiaocio-demo:v1:expenses', '[]')
+    const user = userEvent.setup()
+    renderAt('/administracion')
+    await user.click(await screen.findByRole('button', { name: 'Nuevo gasto' }))
+    let dialog = await screen.findByRole('dialog', { name: 'Nuevo gasto' })
+    await user.type(within(dialog).getByLabelText('Concepto'), 'Internet')
+    await user.type(within(dialog).getByLabelText('Base (€)'), '50')
+    await user.type(within(dialog).getByLabelText('IVA (€)'), '10,50')
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Internet')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Editar Internet' }))
+    dialog = await screen.findByRole('dialog', { name: 'Editar gasto' })
+    await user.clear(within(dialog).getByLabelText('Base (€)'))
+    await user.type(within(dialog).getByLabelText('Base (€)'), '60')
+    await user.click(within(dialog).getByRole('button', { name: 'Guardar' }))
+    await waitFor(() => expect(JSON.parse(localStorage.getItem('galaxiaocio-demo:v1:expenses') ?? '[]')[0].netCents).toBe(6000))
+    await user.click(screen.getByRole('button', { name: 'Eliminar Internet' }))
+    const confirmation = await screen.findByRole('alertdialog', { name: 'Eliminar gasto' })
+    await user.click(within(confirmation).getByRole('button', { name: 'Eliminar' }))
+    await waitFor(() => expect(screen.queryByText('Internet')).toBeNull())
+    expect(JSON.parse(localStorage.getItem('galaxiaocio-demo:v1:expenses') ?? '[]')).toHaveLength(0)
+  })
+
   it.each(['none', 'notified'] as const)(
     'requests supplier stock and records receipt without notifying a team (%s)',
     async (supplierStatus) => {

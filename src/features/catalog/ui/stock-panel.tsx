@@ -27,6 +27,7 @@ import {
   type SupplierStatus,
 } from '../application/stock'
 import { useCatalog } from '../application/use-catalog'
+import type { StockPurchase } from '../application/purchase'
 import { PurchaseDialog } from './purchase-dialog'
 import { StockStatusBadge } from './stock-status-badge'
 
@@ -37,6 +38,7 @@ interface StockPanelProps {
   supplierStatus: SupplierStatus
   /** Called when the supplier has delivered the items. */
   onSupplierReceived: () => void
+  onPurchase: (purchase: StockPurchase) => Promise<void>
   /** Primary action shown once stock is enough (e.g. prepare the shipment). */
   action: ReactNode
 }
@@ -47,6 +49,7 @@ export function StockPanel({
   lines,
   supplierStatus,
   onSupplierReceived,
+  onPurchase,
   action,
 }: StockPanelProps) {
   const { products, suppliers } = useCatalog()
@@ -129,13 +132,14 @@ export function StockPanel({
         ) : null}
         {evaluation.status === 'ok' ? action : null}
       </CardFooter>
-      <PurchaseDialog
-        open={ordering}
+      {ordering ? <PurchaseDialog
+        open
         onClose={() => setOrdering(false)}
         lines={toOrder}
         suppliers={suppliers}
+        onPurchase={onPurchase}
         reference={reference}
-      />
+      /> : null}
     </Card>
   )
 }

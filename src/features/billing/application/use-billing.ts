@@ -10,9 +10,13 @@ export function useBilling() {
   const repository = useBillingRepository()
   const { products } = useCatalog()
   const documents = useCollection('documents', repository.documents)
+  const expenses = useCollection('expenses', repository.expenses)
 
   return {
     documents: documents.items,
+    expenses: expenses.items,
+    saveExpense: expenses.upsert,
+    deleteExpense: expenses.remove,
     documentsFor: (orderId: string) => documents.items.filter((item) => item.orderId === orderId),
     /**
      * Creates the delivery note and, when it applies, the invoice for a shipped order.

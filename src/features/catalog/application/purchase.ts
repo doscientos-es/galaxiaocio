@@ -7,6 +7,14 @@ export interface PurchaseGroup {
   lines: StockLineResult[]
 }
 
+export interface StockPurchase {
+  supplier: string
+  description: string
+  reference: string
+  netCents: number
+  vatCents: number
+}
+
 export function groupMissingBySupplier(
   lines: StockLineResult[],
   suppliers: Supplier[],

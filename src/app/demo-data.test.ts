@@ -7,7 +7,7 @@ afterEach(() => localStorage.clear())
 
 describe('demo data reset', () => {
   it('restores a coherent catalogue, customer history, shipments and documents', async () => {
-    for (const key of ['orders', 'customers', 'products', 'suppliers', 'shipments', 'documents']) {
+    for (const key of ['orders', 'customers', 'products', 'suppliers', 'shipments', 'documents', 'expenses']) {
       localStorage.setItem(`galaxiaocio-demo:v1:${key}`, '[]')
     }
     await resetDemoData()
@@ -21,6 +21,7 @@ describe('demo data reset', () => {
     expect(customers.length).toBeGreaterThan(15)
     expect(products.length).toBeGreaterThan(30)
     expect(suppliers.length).toBeGreaterThan(4)
+    expect((await repositories.billing.expenses.list()).length).toBeGreaterThan(10)
     expect(new Set(orders.map((order) => order.reference)).size).toBe(orders.length)
     expect(new Set(customers.map((customer) => customer.id)).size).toBe(customers.length)
     expect(new Set(products.map((product) => product.sku)).size).toBe(products.length)
@@ -40,8 +41,9 @@ describe('demo data reset', () => {
         expect(ownDocuments).toHaveLength(order.stage === 'closed' ? 2 : 0)
         for (const document of ownDocuments) {
           expect(document.orderReference).toBe(order.reference)
-          expect(document.totalCents).toBe(order.lines.reduce((sum, line) =>
+          expect(document.netCents).toBe(order.lines.reduce((sum, line) =>
             sum + line.quantity * (products.find((product) => product.sku === line.sku)?.priceCents ?? 0), 0))
+          expect(document.totalCents).toBe(document.netCents + document.vatCents)
         }
       }
     }

@@ -35,6 +35,7 @@ import {
   type Order,
 } from '@/features/orders'
 import { ShippingPanel, type Shipment } from '@/features/shipping'
+import { useStockPurchase } from '@/app/use-stock-purchase'
 import { formatCents } from '@/shared/lib/format'
 
 import { SentOrderDetail } from './sent-order-detail'
@@ -65,6 +66,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
   const { orders, customers, advance, markDelivered, setSupplierStatus, logActivity, getLatest } = useOrders()
   const { products, reserve } = useCatalog()
   const { issueDocuments } = useBilling()
+  const onPurchase = useStockPurchase()
   const [preparing, setPreparing] = useState(false)
   const order = orders.find((candidate) => candidate.id === orderId)
 
@@ -183,6 +185,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
         ) : null}
         {order.stage === 'stored' ? (
           <StockPanel
+            onPurchase={onPurchase}
             reference={order.reference}
             lines={order.lines}
             supplierStatus={order.supplierStatus}

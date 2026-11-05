@@ -1,5 +1,6 @@
 import { evaluateStock, StockPage, useCatalog, type WaitingOrder } from '@/features/catalog'
 import { useOrders } from '@/features/orders'
+import { useStockPurchase } from '@/app/use-stock-purchase'
 
 /**
  * Stock screen with the orders each shortage is holding up. It lives in the app layer because
@@ -8,6 +9,7 @@ import { useOrders } from '@/features/orders'
 export function StockRoutePage() {
   const { orders } = useOrders()
   const { products } = useCatalog()
+  const onPurchase = useStockPurchase()
 
   const waitingBySku: Record<string, WaitingOrder[]> = {}
   for (const order of orders.filter((candidate) => candidate.stage === 'stored')) {
@@ -21,5 +23,5 @@ export function StockRoutePage() {
     }
   }
 
-  return <StockPage waitingBySku={waitingBySku} />
+  return <StockPage waitingBySku={waitingBySku} onPurchase={onPurchase} />
 }
