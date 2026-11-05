@@ -1,3 +1,5 @@
+import { createDemoScenarios } from '@/shared/lib/demo/seed-data'
+
 import type { Carrier, Shipment, Tariff, ServiceKind, Zone } from '../application/carrier'
 import { quoteShipment } from '../application/quote'
 import { buildShipment } from '../application/shipment'
@@ -12,7 +14,7 @@ const carrier = (
 
 /** Demo data: carriers named in the discovery meetings. Accounts and tariffs are examples. */
 export function createSeedCarriers(): Carrier[] {
-  return [
+  const original = [
     carrier('mrw', 'MRW', 'https://www.mrw.es', true, 'Paquetería pequeña nacional y Portugal'),
     carrier('ups', 'UPS', 'https://www.ups.com/es', true, 'Paquetería pequeña internacional'),
     carrier(
@@ -37,6 +39,24 @@ export function createSeedCarriers(): Carrier[] {
       'Palés europeos 120 × 80 · alta de cuenta pendiente',
     ),
   ]
+  const additional = createDemoScenarios(now).flatMap((scenario): Shipment[] => {
+    if (scenario.stage === 'stored') return []
+    const weight = scenario.lines.reduce((sum, line) => sum + line.weightKg * line.quantity, 0)
+    const scenarioQuote = quoteShipment(scenario.address, weight, carriers, createSeedTariffs())
+    if (!scenarioQuote.recommended) throw new Error(`No hay tarifa para ${scenario.id}`)
+    return [{
+      ...buildShipment({
+        orderId: scenario.id,
+        quote: scenarioQuote,
+        choice: { kind: 'quoted', option: scenarioQuote.recommended },
+        costCents: scenarioQuote.recommended.priceCents,
+        trackingNumber: `DEMO-${scenario.id.slice('ord-demo-'.length).padStart(8, '0')}`,
+        now: new Date(scenario.shippedAt),
+      }),
+      id: `shp-${scenario.id}`,
+    }]
+  })
+  return [...original, ...additional]
 }
 
 type TariffRow = [carrier: string, service: ServiceKind, zone: Zone, maxKg: number, formula: string]

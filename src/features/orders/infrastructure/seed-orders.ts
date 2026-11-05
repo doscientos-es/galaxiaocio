@@ -1,4 +1,5 @@
 import { formatReference } from '@/shared/lib/ids'
+import { createDemoScenarios } from '@/shared/lib/demo/seed-data'
 
 import type { Activity, Customer, Order } from '../application/order'
 
@@ -126,7 +127,7 @@ const seeds: Seed[] = [
 ]
 
 export function createSeedOrders(now: Date = new Date()): Order[] {
-  return seeds.map((seed, index) => ({
+  const original: Order[] = seeds.map((seed, index) => ({
     id: `ord-seed-${index + 1}`,
     reference: formatReference('PED', now.getFullYear(), index + 1),
     channel: seed.channel,
@@ -141,16 +142,35 @@ export function createSeedOrders(now: Date = new Date()): Order[] {
     notes: seed.notes ?? '',
     supplierStatus: 'none' as const,
   }))
+  const additional: Order[] = createDemoScenarios(now).map((scenario) => ({
+    id: scenario.id,
+    reference: scenario.reference,
+    channel: scenario.channel,
+    marketplace: null,
+    receivedAt: scenario.receivedAt,
+    stage: scenario.stage,
+    ...(scenario.stage === 'closed' ? { deliveredAt: scenario.deliveredAt } : {}),
+    customer: scenario.customer,
+    customerId: scenario.customerId,
+    address: scenario.address,
+    lines: scenario.lines.map(({ id, sku, description, quantity }) => ({ id, sku, description, quantity })),
+    whatsappPhoto: null,
+    notes: '',
+    supplierStatus: 'none',
+  }))
+  return [...original, ...additional]
 }
 
 export function createSeedCustomers(now: Date = new Date()): Customer[] {
-  return createSeedOrders(now)
-    .filter((order) => order.customerId !== null)
-    .map((order) => ({
-      ...order.customer,
-      id: order.customerId ?? '',
-      createdAt: order.receivedAt,
-    }))
+  const customers = new Map<string, Customer>()
+  for (const order of createSeedOrders(now)) {
+    if (!order.customerId) continue
+    const current = customers.get(order.customerId)
+    if (!current || order.receivedAt < current.createdAt) {
+      customers.set(order.customerId, { ...order.customer, id: order.customerId, createdAt: order.receivedAt })
+    }
+  }
+  return [...customers.values()]
 }
 
 export function createSeedActivity(now: Date = new Date()): Activity[] {
